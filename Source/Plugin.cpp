@@ -14,23 +14,239 @@ class Processor;
 class Metal : public LookAndFeel_V4 {public:Metal(){setColour(Slider::textBoxTextColourId,champ);setColour(Slider::textBoxBackgroundColourId,bg);setColour(Slider::textBoxOutlineColourId,Colours::transparentBlack);setColour(TextButton::buttonColourId,panel);setColour(TextButton::buttonOnColourId,gold.darker(.7f));setColour(TextButton::textColourOffId,ink);setColour(TextButton::textColourOnId,champ);}
 void drawRotarySlider(Graphics& g,int x,int y,int w,int h,float pos,float start,float end,Slider&)override{float r=std::min(w,h)*.39f,cx=x+w*.5f,cy=y+h*.5f;for(int i=0;i<=28;++i){float a=start+(end-start)*i/28;g.setColour(i<=pos*28?champ:muted.withAlpha(.35f));g.drawLine(cx+std::sin(a)*r*1.12f,cy-std::cos(a)*r*1.12f,cx+std::sin(a)*r*1.24f,cy-std::cos(a)*r*1.24f,1); }Rectangle<float> b(cx-r,cy-r,2*r,2*r);g.setColour(Colours::black.withAlpha(.6f));g.fillEllipse(b.translated(1,3));ColourGradient grad(Colour(0xff78683d),b.getX(),b.getY(),Colour(0xffb6a064),b.getRight(),b.getBottom(),false);grad.addColour(.32,Colour(0xffd8c68a));grad.addColour(.52,Colour(0xff81703e));grad.addColour(.74,Colour(0xffc6b477));g.setGradientFill(grad);g.fillEllipse(b);g.setColour(champ.withAlpha(.65f));g.drawEllipse(b,1);float a=start+(end-start)*pos;g.setColour(ink);g.drawLine(cx+std::sin(a)*r*.55f,cy-std::cos(a)*r*.55f,cx+std::sin(a)*r*.9f,cy-std::cos(a)*r*.9f,2);}};
 class Processor: public AudioProcessor {public: Processor():AudioProcessor(BusesProperties().withOutput("Stereo",AudioChannelSet::stereo(),true)),state(*this,nullptr,"EG",layout()),engine(std::make_unique<eg::Engine>()){}
-AudioProcessorValueTreeState state;std::unique_ptr<eg::Engine> engine;std::atomic<float> peak{0};float get(String id)const{return state.getRawParameterValue(id)->load();}void set(String id,float x){if(auto* p=state.getParameter(id)){p->beginChangeGesture();p->setValueNotifyingHost(p->convertTo0to1(x));p->endChangeGesture();}}
+AudioProcessorValueTreeState state;std::unique_ptr<eg::Engine> engine;std::atomic<float> peak{0},peakR{0};std::array<std::atomic<float>,512> analysis{};std::atomic<unsigned> analysisHead{0};float get(String id)const{return state.getRawParameterValue(id)->load();}void set(String id,float x){if(auto* p=state.getParameter(id)){p->beginChangeGesture();p->setValueNotifyingHost(p->convertTo0to1(x));p->endChangeGesture();}}
 const String getName()const override{return "Equilibrium Grain";}bool acceptsMidi()const override{return true;}bool producesMidi()const override{return false;}bool isMidiEffect()const override{return false;}double getTailLengthSeconds()const override{return 5;}int getNumPrograms()override{return 1;}int getCurrentProgram()override{return 0;}void setCurrentProgram(int)override{}const String getProgramName(int)override{return "Init";}void changeProgramName(int,const String&)override{}bool hasEditor()const override{return true;}AudioProcessorEditor* createEditor()override;void prepareToPlay(double r,int)override{engine->prepare(r);}void releaseResources()override{}bool isBusesLayoutSupported(const BusesLayout& l)const override{return l.getMainOutputChannelSet()==AudioChannelSet::stereo();}
 void processBlock(AudioBuffer<float>& b,MidiBuffer& midi)override{ScopedNoDenormals nd;b.clear();if(b.getNumChannels()<2)return;eg::Settings s;for(int i=0;i<4;++i){auto& l=s.layers[i];auto v=[&](const char* id){return get(lid(i,id));};l.level=v("level");l.pan=v("pan");l.size=v("size");l.density=v("density");l.position=v("position");l.scatter=v("scatter");l.pitch=v("pitch");l.drift=v("drift");l.spread=v("spread");l.motion=v("motion");l.cutoff=v("cutoff");l.source=int(v("source"));l.direction=int(v("direction"));l.shape=int(v("shape"));l.enabled=v("enabled")>.5f;}
 #define READ(x) s.x=get(#x)
 READ(osc1);READ(osc2);READ(oscPitch1);READ(oscPitch2);READ(fm);READ(ring);READ(attack);READ(release);READ(master);READ(velocity);READ(lfoRate);READ(lfoDepth);READ(xyX);READ(xyY);READ(xyPos);READ(xyDensity);READ(drive);
 #undef READ
-for(int i=0;i<8;++i)s.macros[i]=get("macro"+String(i));int cursor=0;for(auto m:midi){int end=jlimit(cursor,b.getNumSamples(),m.samplePosition);if(end>cursor)engine->render(b.getWritePointer(0,cursor),b.getWritePointer(1,cursor),end-cursor,s);auto msg=m.getMessage();if(msg.isNoteOn())engine->noteOn(msg.getNoteNumber(),msg.getFloatVelocity());else if(msg.isNoteOff())engine->noteOff(msg.getNoteNumber());else if(msg.isAllNotesOff()||msg.isAllSoundOff())engine->allOff();cursor=end;}if(cursor<b.getNumSamples())engine->render(b.getWritePointer(0,cursor),b.getWritePointer(1,cursor),b.getNumSamples()-cursor,s);peak.store(jmax(b.getMagnitude(0,b.getNumSamples()),peak.load()*.85f));}
+for(int i=0;i<8;++i)s.macros[i]=get("macro"+String(i));int cursor=0;for(auto m:midi){int end=jlimit(cursor,b.getNumSamples(),m.samplePosition);if(end>cursor)engine->render(b.getWritePointer(0,cursor),b.getWritePointer(1,cursor),end-cursor,s);auto msg=m.getMessage();if(msg.isNoteOn())engine->noteOn(msg.getNoteNumber(),msg.getFloatVelocity());else if(msg.isNoteOff())engine->noteOff(msg.getNoteNumber());else if(msg.isAllNotesOff()||msg.isAllSoundOff())engine->allOff();cursor=end;}if(cursor<b.getNumSamples())engine->render(b.getWritePointer(0,cursor),b.getWritePointer(1,cursor),b.getNumSamples()-cursor,s);peak.store(jmax(b.getMagnitude(0,0,b.getNumSamples()),peak.load()*.85f));peakR.store(jmax(b.getMagnitude(1,0,b.getNumSamples()),peakR.load()*.85f));auto head=analysisHead.load(std::memory_order_relaxed);for(int k=0;k<b.getNumSamples();++k)analysis[(head++)%512].store(.5f*(b.getSample(0,k)+b.getSample(1,k)),std::memory_order_relaxed);analysisHead.store(head,std::memory_order_release);}
 void getStateInformation(MemoryBlock& b)override{if(auto x=state.copyState().createXml())copyXmlToBinary(*x,b);}void setStateInformation(const void* d,int n)override{if(auto x=getXmlFromBinary(d,n))if(x->hasTagName(state.state.getType()))state.replaceState(ValueTree::fromXml(*x));}
 };
-class Knob:public Component{public:Slider slider;Label label;std::unique_ptr<AudioProcessorValueTreeState::SliderAttachment> attachment;Knob(Processor& p,String id,String name){label.setText(name,dontSendNotification);label.setJustificationType(Justification::centred);label.setColour(Label::textColourId,muted);label.setFont(FontOptions(11.f));addAndMakeVisible(label);slider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);slider.setTextBoxStyle(Slider::TextBoxBelow,false,70,16);addAndMakeVisible(slider);attachment=std::make_unique<AudioProcessorValueTreeState::SliderAttachment>(p.state,id,slider);}void resized()override{auto r=getLocalBounds();label.setBounds(r.removeFromTop(19));slider.setBounds(r);}};
-class Editor:public AudioProcessorEditor,private Timer{public:Editor(Processor& p):AudioProcessorEditor(p),proc(p){setLookAndFeel(&metal);for(int i=0;i<8;++i){tabs[i].onClick=[this,i]{page=i;rebuild();};addAndMakeVisible(tabs[i]);}for(int i=0;i<4;++i){layers[i].setButtonText(String::charToString(juce_wchar('A'+i)));layers[i].onClick=[this,i]{layer=i;rebuild();};addAndMakeVisible(layers[i]);}language.setButtonText("FR / EN");language.onClick=[this]{fr=!fr;rebuild();};addAndMakeVisible(language);for(int i=0;i<8;++i){macros[i]=std::make_unique<Knob>(proc,"macro"+String(i),macroNames[i]);addAndMakeVisible(*macros[i]);if(i==6)macros[i]->setEnabled(false);}master=std::make_unique<Knob>(proc,"master","Master");addAndMakeVisible(*master);setResizable(true,true);setResizeLimits(960,600,1800,1200);setSize(1200,800);rebuild();startTimerHz(15);}~Editor()override{stopTimer();setLookAndFeel(nullptr);}
-void timerCallback()override{repaint();}void add(String id,String label){auto k=std::make_unique<Knob>(proc,id,label);addAndMakeVisible(*k);knobs.push_back(std::move(k));}void local(const char* id){for(auto& s:layerSpecs)if(String(s.id)==id)add(lid(layer,id),String::fromUTF8(fr?s.fr:s.en));}void global(const char* id){for(auto& s:globalSpecs)if(String(s.id)==id)add(id,String::fromUTF8(fr?s.fr:s.en));}
-void rebuild(){knobs.clear();for(auto& b:presetButtons)removeChildComponent(b.get());presetButtons.clear();const char* f[]={"MOTEUR GRANULAIRE","LABORATOIRE","SYNTHÈSE","MODULATION","FILTRES & EFFETS","MOUVEMENT","PERFORMANCE","PRESETS"};const char* e[]={"GRANULAR ENGINE","SAMPLE LAB","SYNTHESIS","MODULATION","FILTERS & EFFECTS","MOTION & SEQUENCER","PERFORMANCE","PRESET BROWSER"};for(int i=0;i<8;++i){tabs[i].setButtonText(String::fromUTF8(fr?f[i]:e[i]));tabs[i].setToggleState(i==page,dontSendNotification);}for(int i=0;i<4;++i){layers[i].setVisible(page==0||page==1||page==4);layers[i].setToggleState(i==layer,dontSendNotification);}if(page==0){for(auto id:{"source","level","pan","enabled","size","density","position","scatter","pitch","drift","spread","motion"})local(id);}if(page==1){for(auto id:{"source","position","scatter","direction","shape","size","drift","spread"})local(id);}if(page==2){for(auto id:{"osc1","oscPitch1","osc2","oscPitch2","fm","ring","attack","release"})global(id);}if(page==3){global("lfoRate");global("lfoDepth");}if(page==4){local("cutoff");global("drive");}if(page==5){for(auto id:{"xyX","xyY","xyPos","xyDensity"})global(id);}if(page==6){for(auto id:{"velocity","attack","release","master"})global(id);}if(page==7){const char* names[]={"Init","Golden Atmosphere","Frozen Memories","Infinite Horizon","Quantum Dust","Velvet Clouds","Liquid Time","Metallic Dreams"};for(int i=0;i<8;++i){auto b=std::make_unique<TextButton>(names[i]);b->onClick=[this,i]{for(auto* param:proc.getParameters())param->setValueNotifyingHost(param->getDefaultValue());for(int j=0;j<4;++j){proc.set(lid(j,"enabled"),j==0||(i>4&&j==1)?1:0);proc.set(lid(j,"source"),float((i+j)%8));proc.set(lid(j,"size"),i==0?180.f:45.f+i*95.f);proc.set(lid(j,"density"),i==0?24.f:8.f+i*7.f);proc.set(lid(j,"pitch"),j==0?0.f:12.f);proc.set(lid(j,"cutoff"),9000.f-i*750.f);proc.set(lid(j,"position"),.15f+i*.09f);proc.set(lid(j,"level"),j==0?.65f:.32f);}proc.set("attack",.02f+i*.075f);proc.set("release",.9f+i*.2f);proc.set("lfoDepth",i*.085f);proc.set("osc1",.2f);proc.set("osc2",i*.035f);};addAndMakeVisible(*b);presetButtons.push_back(std::move(b));}}resized();repaint();}
-void resized()override{if(!master)return;int w=getWidth(),h=getHeight();language.setBounds(w-95,18,78,28);for(int i=0;i<8;++i)tabs[i].setBounds(8+i*(w-16)/8,76,(w-16)/8-1,38);for(int i=0;i<4;++i)layers[i].setBounds(18+66*i,125,60,30);int bottom=h-110;int mw=(w-128)/9;for(int i=0;i<8;++i)macros[i]->setBounds(112+i*mw,bottom+8,mw-3,92);master->setBounds(112+8*mw,bottom+8,mw-3,92);int top=(page==0||page==1)?(h*53/100):page==5?h*52/100:180;int cols=page==0?6:4;int rows=std::max(1,(int(knobs.size())+cols-1)/cols);int cellW=(w-48)/cols,cellH=std::min(130,(bottom-top-12)/rows);for(int i=0;i<int(knobs.size());++i)knobs[i]->setBounds(24+(i%cols)*cellW,top+(i/cols)*cellH,cellW-4,cellH-3);for(int i=0;i<int(presetButtons.size());++i)presetButtons[i]->setBounds(w/4,153+i*(bottom-165)/8,w*3/4-30,(bottom-165)/8-4);}
-void paint(Graphics& g)override{int w=getWidth(),h=getHeight();g.fillAll(bg);g.setColour(panel);g.fillRect(0,0,w,72);g.setColour(champ);g.setFont(FontOptions(22.f,Font::bold));g.drawText("LIBERTY",20,12,150,30,Justification::centredLeft);g.setColour(ink);g.setFont(FontOptions(28.f));g.drawText("EQUILIBRIUM GRAIN",180,8,w-350,40,Justification::centredLeft);g.setColour(muted);g.setFont(FontOptions(11.f));g.drawText("ADVANCED GRANULAR SYNTHESIS INSTRUMENT",183,44,400,20,Justification::centredLeft);g.setColour(gold);g.fillRect(w-260,50,int(140*jlimit(0.f,1.f,proc.peak.load())),4);g.setColour(panel);g.fillRoundedRectangle(14.f,161.f,float(w-28),float(h-281),5);if(page==0||page==1){auto r=Rectangle<float>(24,170,float(w-48),float(h*.53-188));g.setColour(Colour(0xff19211d));g.fillRect(r);g.setColour(muted.withAlpha(.25f));for(int i=0;i<=10;++i)g.drawVerticalLine(int(r.getX()+r.getWidth()*i/10),r.getY(),r.getBottom());int s=jlimit(0,7,int(proc.get(lid(layer,"source"))));Path path;auto& src=proc.engine->sources[s];for(int i=0;i<int(r.getWidth());++i){float yy=r.getCentreY()-src[size_t(i)*src.size()/size_t(r.getWidth())]*r.getHeight()*.45f;if(i==0)path.startNewSubPath(r.getX(),yy);else path.lineTo(r.getX()+i,yy);}g.setColour(gold);g.strokePath(path,PathStrokeType(1));g.setColour(champ);g.drawVerticalLine(int(r.getX()+r.getWidth()*proc.get(lid(layer,"position"))),r.getY(),r.getBottom());}if(page==5){auto r=xyRect();g.setColour(Colour(0xff19211d));g.fillRect(r);g.setColour(muted.withAlpha(.3f));for(int i=0;i<=8;++i){g.drawVerticalLine(int(r.getX()+r.getWidth()*i/8),r.getY(),r.getBottom());g.drawHorizontalLine(int(r.getY()+r.getHeight()*i/8),r.getX(),r.getRight());}g.setColour(champ);g.fillEllipse(r.getX()+r.getWidth()*proc.get("xyX")-5,r.getBottom()-r.getHeight()*proc.get("xyY")-5,10,10);}g.setColour(panel);g.fillRect(0,h-110,w,110);g.setColour(gold);g.drawHorizontalLine(h-110,0,float(w));g.setFont(FontOptions(15.f,Font::bold));g.drawText("MACROS",12,h-85,94,30,Justification::centred);g.setFont(FontOptions(9.f));g.drawText("v0.1  /  DSP CORE",12,h-35,94,20,Justification::centred);}
-void mouseDown(const MouseEvent& e)override{mouseDrag(e);}void mouseDrag(const MouseEvent& e)override{if(page==5&&xyRect().contains(e.position)){auto r=xyRect();proc.set("xyX",(e.position.x-r.getX())/r.getWidth());proc.set("xyY",1-(e.position.y-r.getY())/r.getHeight());}else if((page==0||page==1)&&e.position.y>=170&&e.position.y<getHeight()*.53-18)proc.set(lid(layer,"position"),jlimit(0.f,1.f,(e.position.x-24)/(getWidth()-48)));}
-private:Rectangle<float> xyRect()const{return {40,175,float(getWidth()-80),float(getHeight()*.52-190)};}Processor& proc;Metal metal;bool fr=true;int page=0,layer=0;std::array<TextButton,8> tabs;std::array<TextButton,4> layers;TextButton language;std::vector<std::unique_ptr<Knob>> knobs;std::array<std::unique_ptr<Knob>,8> macros;std::unique_ptr<Knob> master;std::vector<std::unique_ptr<TextButton>> presetButtons;};
+
+static String tr(bool fr,const char* a,const char* b){return String::fromUTF8(fr?a:b);}
+class ReferenceLook : public Metal {
+public:
+ ReferenceLook(){
+  setColour(ComboBox::backgroundColourId,Colour(0xff1c211e));setColour(ComboBox::outlineColourId,Colour(0xff41483c));setColour(ComboBox::textColourId,ink);setColour(ComboBox::arrowColourId,muted);
+  setColour(PopupMenu::backgroundColourId,Colour(0xff202622));setColour(PopupMenu::textColourId,ink);setColour(PopupMenu::highlightedBackgroundColourId,Colour(0xff57513a));setColour(PopupMenu::highlightedTextColourId,champ);
+  setColour(TextEditor::backgroundColourId,Colour(0xff171d19));setColour(TextEditor::outlineColourId,Colour(0xff41483c));setColour(TextEditor::focusedOutlineColourId,gold);setColour(TextEditor::textColourId,ink);
+ }
+ void drawButtonBackground(Graphics& g,Button& b,const Colour&,bool over,bool down)override{
+  auto r=b.getLocalBounds().toFloat().reduced(.8f);
+  bool on=b.getToggleState();auto tab=b.getProperties().contains("tab");
+  Colour top=on?Colour(0xff514c36):Colour(0xff282e28);
+  Colour bot=on?Colour(0xff393b2d):Colour(0xff1b211e);
+  if(over)top=top.brighter(.10f);if(down)bot=bot.darker(.16f);
+  g.setGradientFill(ColourGradient(top,0,r.getY(),bot,0,r.getBottom(),false));
+  if(tab)g.fillRect(r);else g.fillRoundedRectangle(r,3);
+  g.setColour(on?gold.withAlpha(.7f):Colour(0xff41493e));if(tab)g.drawRect(r,.8f);else g.drawRoundedRectangle(r,3,1);
+  if(tab&&on){g.setColour(champ);g.fillRect(r.getX()+17,r.getBottom()-3,r.getWidth()-34,2.5f);}
+ }
+ void drawButtonText(Graphics& g,TextButton& b,bool,bool)override{
+  g.setColour((b.getToggleState()?champ:ink).withMultipliedAlpha(b.isEnabled()?1.f:.45f));
+  g.setFont(FontOptions(b.getProperties().contains("tab")?12.f:14.f,Font::bold));
+  g.drawFittedText(b.getButtonText(),b.getLocalBounds().reduced(9,2),b.getProperties().contains("left")?Justification::centredLeft:Justification::centred,1,.75f);
+ }
+ Font getComboBoxFont(ComboBox&)override{return Font(FontOptions(14.f));}
+ Font getPopupMenuFont()override{return Font(FontOptions(15.f));}
+};
+class Knob:public Component {
+public:
+ Slider slider;Label label;std::unique_ptr<AudioProcessorValueTreeState::SliderAttachment> attachment;
+ Knob(Processor& p,String id,String name){
+  label.setText(name,dontSendNotification);label.setJustificationType(Justification::centred);label.setColour(Label::textColourId,Colour(0xffb4b7a9));label.setFont(FontOptions(13.f,Font::bold));addAndMakeVisible(label);
+  slider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);slider.setTextBoxStyle(Slider::TextBoxBelow,false,92,19);slider.setRotaryParameters(MathConstants<float>::pi*1.25f,MathConstants<float>::pi*2.75f,true);addAndMakeVisible(slider);
+  attachment=std::make_unique<AudioProcessorValueTreeState::SliderAttachment>(p.state,id,slider);
+  if(auto* param=p.state.getParameter(id))slider.setDoubleClickReturnValue(true,param->convertFrom0to1(param->getDefaultValue()));
+  slider.setColour(Slider::textBoxTextColourId,champ);slider.setColour(Slider::textBoxBackgroundColourId,Colours::transparentBlack);
+  if(id.endsWith("_size"))slider.setTextValueSuffix(" ms");
+  if(id.endsWith("_density"))slider.setTextValueSuffix(" Hz");
+  if(id.endsWith("_pitch")||id.endsWith("_drift")||id.startsWith("oscPitch"))slider.setTextValueSuffix(" st");
+  if(id.endsWith("_cutoff"))slider.setTextValueSuffix(" Hz");
+  if(id=="master")slider.setTextValueSuffix(" dB");
+ }
+ void resized()override{auto r=getLocalBounds();label.setBounds(r.removeFromTop(20));slider.setBounds(r);}
+};
+class ReferenceSurface:public Component,private Timer {
+public:
+ explicit ReferenceSurface(Processor& p):proc(p){
+  setLookAndFeel(&look);setSize(1500,1000);setOpaque(true);
+  for(int i=0;i<8;++i){auto& b=tabs[i];b.getProperties().set("tab",true);b.onClick=[this,i]{page=i;rebuild();};addAndMakeVisible(b);}
+  for(int i=0;i<4;++i){auto& b=layers[i];b.onClick=[this,i]{layer=i;rebuild();};addAndMakeVisible(b);}
+  language.setButtonText("FR / EN");language.onClick=[this]{fr=!fr;rebuild();};addAndMakeVisible(language);
+  sound.addItem(tr(fr,"Son personnalisé","Custom sound"),1);for(int i=0;i<8;++i)sound.addItem(presetNames()[i],i+2);sound.setSelectedId(1,dontSendNotification);sound.onChange=[this]{int n=sound.getSelectedId()-2;if(n>=0)loadPreset(n);};addAndMakeVisible(sound);
+  previous.setButtonText("<");next.setButtonText(">");previous.onClick=[this]{loadPreset((current+7)%8);};next.onClick=[this]{loadPreset((current+1)%8);};addAndMakeVisible(previous);addAndMakeVisible(next);
+  for(int i=0;i<8;++i){macros[i]=std::make_unique<Knob>(proc,"macro"+String(i),macroNames[i]);addAndMakeVisible(*macros[i]);if(i==6){macros[i]->setEnabled(false);macros[i]->slider.setTooltip("Space: effects engine not implemented");}}
+  master=std::make_unique<Knob>(proc,"master","Master");addAndMakeVisible(*master);
+  for(int i=0;i<8;++i)favorites[i]=bool(proc.state.state.getProperty("favorite"+String(i),false));
+  rebuild();startTimerHz(20);
+ }
+ ~ReferenceSurface()override{stopTimer();clearPage();setLookAndFeel(nullptr);}
+ void resized()override{
+  for(int i=0;i<8;++i)tabs[i].setBounds(26+i*180,118,180,60);
+  for(int i=0;i<4;++i)layers[i].setBounds(26+i*91,198,84,41);
+  sound.setBounds(950,53,245,38);previous.setBounds(1202,53,29,38);next.setBounds(1236,53,29,38);language.setBounds(1394,14,78,26);
+  for(int i=0;i<8;++i)if(macros[i])macros[i]->setBounds(155+i*142,833,130,125);
+  if(master)master->setBounds(1328,833,133,125);
+ }
+ void paint(Graphics& g)override{
+  g.fillAll(Colour(0xff171a19));
+  g.setGradientFill(ColourGradient(Colour(0xff292b28),0,0,Colour(0xff161918),1500,120,false));g.fillRect(0,0,1500,118);
+  g.setColour(champ);Path logo;logo.startNewSubPath(28,44);logo.lineTo(28,84);logo.lineTo(62,77);logo.startNewSubPath(39,48);logo.lineTo(39,67);logo.lineTo(62,61);g.strokePath(logo,PathStrokeType(3.2f));
+  text(g,"L I B E R T Y",76,38,145,33,25,champ,true);
+  text(g,"SOUND WITHOUT LIMITS",77,76,150,15,10,muted,true);
+  g.setColour(Colour(0xff5c5a4b));g.drawVerticalLine(236,34,90);g.drawHorizontalLine(117,0,1500);
+  text(g,"EQUILIBRIUM",266,29,232,45,33,ink,false);text(g,"GRAIN",503,29,205,45,33,champ,true);
+  text(g,"Advanced Granular Synthesis Instrument",267,76,560,20,14,muted,true);
+  text(g,tr(fr,"DERNIER SON","SOUND STATE"),950,31,240,16,11,muted,true);
+  text(g,tr(fr,"SORTIE","OUTPUT"),1291,43,86,13,10,muted,true);meter(g,{1290,65,174,17});
+  g.setColour(Colour(0xff171c19));g.fillRect(0,118,1500,61);
+  switch(page){case 0:paintGranular(g);break;case 1:paintLab(g);break;case 2:paintSynth(g);break;case 3:paintMod(g);break;case 4:paintFilters(g);break;case 5:paintMotion(g);break;case 6:paintPerformance(g);break;case 7:paintBrowser(g);break;}
+  g.setGradientFill(ColourGradient(Colour(0xff292d27),0,818,Colour(0xff1b211d),0,970,false));g.fillRect(0,818,1500,153);
+  g.setColour(gold.withAlpha(.65f));g.drawHorizontalLine(818,0,1500);g.setColour(Colour(0xff545b48));g.drawVerticalLine(1296,835,957);
+  text(g,"PERFORMANCE",26,862,120,17,11,muted,true);text(g,"M A C R O S",26,880,130,28,19,champ,true);text(g,tr(fr,"Contrôles directs","Direct controls"),26,918,125,15,10,muted,false);
+  g.setColour(Colour(0xff141a16));g.fillRect(0,971,1500,29);g.setColour(Colour(0xff4e5647));g.drawHorizontalLine(971,0,1500);
+  text(g,tr(fr,"SOURCES INTERNES  /  MIDI POLYPHONIQUE  /  V0.2","BUILT-IN SOURCES  /  MIDI POLYPHONIC  /  V0.2"),26,978,700,15,10,muted,true);
+  text(g,"SHAPE SOUND BEYOND REALITY.",1110,978,365,15,10,muted,true,Justification::centredRight);
+  for(auto pt:{Point<float>(9,9),Point<float>(1490,9),Point<float>(9,990),Point<float>(1490,990)}){g.setColour(Colour(0xff62675b));g.drawEllipse(pt.x-3,pt.y-3,6,6,1);g.drawLine(pt.x-1.5f,pt.y+1.5f,pt.x+1.5f,pt.y-1.5f,1);}
+ }
+ void mouseDown(const MouseEvent& e)override{mouseDrag(e);}
+ void mouseDrag(const MouseEvent& e)override{
+  auto p=e.position;
+  if((page==0||page==1)&&waveRect().contains(p)){auto r=waveRect();auto range=waveRange();proc.set(lid(layer,"position"),jlimit(0.f,1.f,range.first+(p.x-r.getX())/r.getWidth()*range.second));}
+  if((page==5||page==6)&&xyRect().contains(p)){auto r=xyRect();proc.set("xyX",jlimit(0.f,1.f,(p.x-r.getX())/r.getWidth()));proc.set("xyY",jlimit(0.f,1.f,1-(p.y-r.getY())/r.getHeight()));}
+  if(page==4&&filterRect().contains(p)){auto r=filterRect();proc.set(lid(layer,"cutoff"),20.f*std::pow(1000.f,jlimit(0.f,1.f,(p.x-r.getX())/r.getWidth())));}
+ }
+private:
+ Processor& proc;ReferenceLook look;bool fr=true;int page=0,layer=0,current=-1,zoom=1,category=0;std::array<bool,8> favorites{};
+ std::array<TextButton,8> tabs;std::array<TextButton,4> layers;TextButton language,previous,next;ComboBox sound;
+ std::array<std::unique_ptr<Knob>,8> macros;std::unique_ptr<Knob> master;
+ std::vector<std::unique_ptr<Component>> controls;std::vector<std::unique_ptr<AudioProcessorValueTreeState::ComboBoxAttachment>> combos;
+ std::array<TextButton*,8> rows{},stars{};std::array<int,8> rowIds{};TextEditor* search=nullptr;TextButton* active=nullptr;
+ std::array<float,64> spectrum{};
+ static const char* const* presetNames(){static const char* n[]={"Init","Golden Atmosphere","Frozen Memories","Infinite Horizon","Quantum Dust","Velvet Clouds","Liquid Time","Metallic Dreams"};return n;}
+ static const char* const* sources(){static const char* n[]={"Velvet","Silk","Glass","Amber","Mist","Crystal","Dust","Metal"};return n;}
+ int presetCategory(int n)const{return n==0?0:n<4?1:n==5?1:n==4||n==7?2:3;}
+ String catName(int n)const{switch(n){case 1:return tr(fr,"Pads atmosphériques","Atmospheric Pads");case 2:return tr(fr,"Textures expérimentales","Experimental Textures");case 3:return tr(fr,"Paysages sonores","Soundscapes");default:return "Init";}}
+ static void text(Graphics& g,String s,int x,int y,int w,int h,float font,Colour c,bool bold=false,Justification j=Justification::centredLeft){g.setColour(c);g.setFont(FontOptions(font,bold?Font::bold:Font::plain));g.drawFittedText(s,x,y,w,h,j,1,.75f);}
+ void panelBox(Graphics& g,Rectangle<float> r){g.setGradientFill(ColourGradient(Colour(0xff282d28),r.getX(),r.getY(),Colour(0xff202622),r.getRight(),r.getBottom(),false));g.fillRoundedRectangle(r,5);g.setColour(Colour(0xff424b3e));g.drawRoundedRectangle(r,5,1.5f);}
+ void panelTitle(Graphics& g,int x,int y,int w,String kicker,String name){text(g,kicker,x,y,w,16,11,muted,true);text(g,name,x,y+20,w,26,19,ink,true);}
+ void note(Graphics& g,String s,int x,int y,int w){text(g,s,x,y,w,18,13,muted);}
+ void unavailable(Graphics& g,Rectangle<float> r,String title,String desc){panelBox(g,r);panelTitle(g,int(r.getX())+18,int(r.getY())+17,int(r.getWidth())-36,tr(fr,"À IMPLÉMENTER","NOT IMPLEMENTED"),title);note(g,desc,int(r.getX())+18,int(r.getY())+68,int(r.getWidth())-36);}
+ void meter(Graphics& g,Rectangle<float> r){
+  float levels[]={proc.peak.load(),proc.peakR.load()};
+  for(int ch=0;ch<2;++ch){float db=Decibels::gainToDecibels(levels[ch],-60.f);float n=jlimit(0.f,1.f,(db+60)/60);for(int i=0;i<30;++i){g.setColour(i<30*n?(i<25?gold:Colour(0xffd0a059)):Colour(0xff434b34));g.fillRect(r.getX()+i*r.getWidth()/30,r.getY()+ch*r.getHeight()/2,r.getWidth()/30-1.5f,r.getHeight()/2-2);}}
+ }
+ Rectangle<float> waveRect()const{return page==0?Rectangle<float>(296,299,1170,201):Rectangle<float>(26,299,1440,223);}
+ Rectangle<float> xyRect()const{return page==5?Rectangle<float>(48,322,663,278):Rectangle<float>(48,265,660,281);}
+ Rectangle<float> filterRect()const{return {47,453,661,160};}
+ std::pair<float,float> waveRange()const{float span=1.f/zoom;float pos=proc.get(lid(layer,"position"));return {jlimit(0.f,1.f-span,pos-span*.5f),span};}
+ void wave(Graphics& g){
+  auto r=waveRect();auto top=r.withY(r.getY()-43).withHeight(43);auto base=r.withY(r.getBottom()).withHeight(29);
+  panelBox(g,top.getUnion(r).getUnion(base));int source=jlimit(0,7,int(proc.get(lid(layer,"source"))));
+  text(g,sources()[source],int(top.getX())+16,int(top.getY())+7,140,28,17,champ,true);text(g,tr(fr,"SOURCE INTERNE / COUCHE ","BUILT-IN SOURCE / LAYER ")+String::charToString(juce_wchar('A'+layer)),int(top.getX())+155,int(top.getY())+10,500,24,11,muted,true);
+  g.setColour(Colour(0xff1b211d));g.fillRect(r);
+  auto range=waveRange();for(int i=0;i<=16;++i){float x=r.getX()+i*r.getWidth()/16;g.setColour(Colour(0xff333d32));g.drawVerticalLine(int(x),r.getY(),r.getBottom());if(i%4==0&&i<16)text(g,String(range.first+range.second*i/16,3)+" s",int(x)+6,int(r.getY())+5,90,16,12,muted);}
+  g.setColour(Colour(0xff343b32));g.drawHorizontalLine(int(r.getCentreY()),r.getX(),r.getRight());
+  auto& src=proc.engine->sources[source];Path path;int count=int(r.getWidth());for(int i=0;i<count;++i){float t=range.first+range.second*float(i)/float(count-1);int idx=jlimit(0,int(src.size())-1,int(t*float(src.size()-1)));float y=r.getCentreY()-src[size_t(idx)]*r.getHeight()*.42f;if(i==0)path.startNewSubPath(r.getX(),y);else path.lineTo(r.getX()+i,y);}
+  g.setColour(champ.withAlpha(.86f));g.strokePath(path,PathStrokeType(1.15f));
+  float px=r.getX()+r.getWidth()*(proc.get(lid(layer,"position"))-range.first)/range.second;if(px>=r.getX()&&px<=r.getRight()){g.setColour(champ);g.drawVerticalLine(int(px),r.getY(),r.getBottom());Path tri;tri.addTriangle(px-6,r.getY(),px+6,r.getY(),px,r.getY()+8);g.fillPath(tri);}
+  g.setColour(Colour(0xff273023));g.fillRect(base);text(g,tr(fr,"POSITION ","POSITION ")+String(proc.get(lid(layer,"position"))*100,1)+" %",int(base.getX())+16,int(base.getY())+4,320,20,11,muted,true);text(g,tr(fr,"GLISSER POUR DÉPLACER","DRAG TO SCAN"),int(base.getRight())-255,int(base.getY())+4,240,20,11,muted,true,Justification::centredRight);
+ }
+ void drawSpectrum(Graphics& g,Rectangle<float> r){g.setColour(Colour(0xff1a201c));g.fillRect(r);for(int i=1;i<4;++i){g.setColour(Colour(0xff303a31));g.drawHorizontalLine(int(r.getY()+i*r.getHeight()/4),r.getX(),r.getRight());}Path p;for(int i=0;i<64;++i){float x=r.getX()+r.getWidth()*i/63;float y=r.getBottom()-jlimit(0.f,1.f,spectrum[i])*r.getHeight();if(i==0)p.startNewSubPath(x,y);else p.lineTo(x,y);}g.setColour(gold);g.strokePath(p,PathStrokeType(1.7f));}
+ void drawXY(Graphics& g){auto r=xyRect();g.setColour(Colour(0xff19211e));g.fillRect(r);g.setColour(Colour(0xff43503d));g.drawRect(r,1);for(int i=1;i<8;++i){g.setColour(Colour(0xff344036));g.drawVerticalLine(int(r.getX()+i*r.getWidth()/8),r.getY(),r.getBottom());g.drawHorizontalLine(int(r.getY()+i*r.getHeight()/8),r.getX(),r.getRight());}g.setColour(gold.withAlpha(.4f));g.drawVerticalLine(int(r.getCentreX()),r.getY(),r.getBottom());g.drawHorizontalLine(int(r.getCentreY()),r.getX(),r.getRight());g.setColour(muted.withAlpha(.4f));g.drawEllipse(r.reduced(r.getWidth()*.23f,r.getHeight()*.14f),1.1f);float x=r.getX()+proc.get("xyX")*r.getWidth(),y=r.getBottom()-proc.get("xyY")*r.getHeight();g.setColour(gold);g.drawEllipse(x-35,y-19,70,38,2);g.setColour(champ);g.fillEllipse(x-11,y-6,22,12);text(g,tr(fr,"Y / DENSITÉ","Y / DENSITY"),int(r.getX())+24,int(r.getY())+12,200,20,15,muted,true);text(g,"X / POSITION",int(r.getRight())-200,int(r.getBottom())-30,175,20,15,muted,true,Justification::centredRight);}
+ void paintGranular(Graphics& g){
+  panelBox(g,{26,256,252,354});panelTitle(g,43,269,220,tr(fr,"COUCHE GRANULAIRE","GRANULAR LAYER")+" "+String::charToString(juce_wchar('A'+layer)),tr(fr,"Matériau source","Source material"));
+  note(g,tr(fr,"Banque interne","Built-in source bank"),43,321,220);note(g,tr(fr,"Direction des grains","Grain direction"),43,552,220);
+  wave(g);text(g,tr(fr,"SPECTRE DE SORTIE","OUTPUT SPECTRUM"),296,539,400,18,11,muted,true);drawSpectrum(g,{296,563,880,44});note(g,tr(fr,"Forme d'enveloppe","Envelope shape"),1200,540,265);
+  panelBox(g,{26,623,1441,163});panelTitle(g,46,632,470,tr(fr,"TEMPS / HAUTEUR / ESPACE","TIME / PITCH / SPACE"),tr(fr,"Architecture des grains","Grain architecture"));
+ }
+ void paintLab(Graphics& g){
+  wave(g);panelBox(g,{26,568,700,228});panelTitle(g,47,583,660,"SOURCE LAB",tr(fr,"Région et préparation","Region & preparation"));note(g,tr(fr,"Sources internes uniquement dans cette version","Built-in sources only in this version"),48,634,650);
+  panelBox(g,{747,568,720,228});panelTitle(g,768,583,670,tr(fr,"VARIATION PAR GRAIN","PER-GRAIN VARIATION"),tr(fr,"Variation des grains","Grain variation"));
+ }
+ void paintSynth(Graphics& g){
+  for(int i=0;i<2;++i){int x=26+i*720;panelBox(g,{float(x),198,702,352});panelTitle(g,x+21,214,660,tr(fr,"SYNTHÈSE HYBRIDE","HYBRID SYNTHESIS"),"Oscillator 0"+String(i+1));note(g,tr(fr,"Sinusoïde / accord indépendant","Sine / independent tuning"),x+21,278,660);g.setColour(gold.withAlpha(.8f));Path p;for(int k=0;k<630;++k){float yy=338.f+13.f*std::sin(k*.028f);if(k==0)p.startNewSubPath(float(x+35),yy);else p.lineTo(float(x+35+k),yy);}g.strokePath(p,PathStrokeType(1.2f));note(g,tr(fr,"Autres formes et unisson : non implémentés","Other waveforms and unison: not implemented"),x+21,522,660);}
+  panelBox(g,{26,568,702,228});panelTitle(g,47,583,660,tr(fr,"MODULATION ET MIXAGE","MODULATION & MIX"),tr(fr,"Interaction hybride","Hybrid interaction"));
+  panelBox(g,{746,568,721,228});panelTitle(g,767,583,680,tr(fr,"SIGNAL DE SORTIE","OUTPUT AUDIO"),tr(fr,"Analyse de sortie","Output analysis"));drawSpectrum(g,{768,655,677,121});
+ }
+ void paintMod(Graphics& g){
+  panelBox(g,{26,198,1441,73});panelTitle(g,46,209,1370,tr(fr,"MODULATION","MODULATION"),tr(fr,"LFO de position","Position LFO"));
+  panelBox(g,{26,291,700,505});panelTitle(g,47,311,650,tr(fr,"SOURCE ACTIVE","ACTIVE SOURCE"),"LFO 01");auto r=Rectangle<float>(48,380,656,190);g.setColour(Colour(0xff18211c));g.fillRect(r);g.setColour(Colour(0xff394638));g.drawHorizontalLine(int(r.getCentreY()),r.getX(),r.getRight());Path p;for(int i=0;i<655;++i){float y=r.getCentreY()-std::sin(float(i)*2*eg::pi/655)*70;if(i==0)p.startNewSubPath(r.getX(),y);else p.lineTo(r.getX()+i,y);}g.setColour(champ);g.strokePath(p,PathStrokeType(2));
+  panelBox(g,{747,291,720,244});panelTitle(g,768,311,678,tr(fr,"ROUTAGE ACTIF","ACTIVE ROUTING"),tr(fr,"LFO 1 vers position des grains","LFO 1 to grain position"));note(g,tr(fr,"Profondeur et vitesse reliées au moteur audio.","Depth and rate connected to audio engine."),768,383,678);
+  unavailable(g,{747,553,720,243},tr(fr,"Matrice 64 routes et autres sources","64-slot matrix and additional sources"),tr(fr,"Disponibles après implémentation du moteur de modulation.","Available after modulation engine implementation."));
+ }
+ void paintFilters(Graphics& g){
+  panelBox(g,{26,313,702,478});panelTitle(g,47,330,660,tr(fr,"COUCHE ACTIVE","ACTIVE LAYER"),"Filter 01");note(g,tr(fr,"Passe-bas 1 pôle / réponse numérique","One-pole low-pass / digital response"),47,391,660);
+  auto r=filterRect();g.setColour(Colour(0xff19221a));g.fillRect(r);for(int i=1;i<4;++i){g.setColour(Colour(0xff344235));g.drawHorizontalLine(int(r.getY()+i*r.getHeight()/4),r.getX(),r.getRight());}float fc=proc.get(lid(layer,"cutoff"));Path p;for(int i=0;i<660;++i){float hz=20*std::pow(1000.f,i/659.f);float db=-10.f*std::log10(1+(hz/fc)*(hz/fc));float y=r.getY()+12+jlimit(0.f,1.f,-db/60.f)*(r.getHeight()-24);if(i==0)p.startNewSubPath(r.getX(),y);else p.lineTo(r.getX()+i,y);}g.setColour(gold);g.strokePath(p,PathStrokeType(2));
+  unavailable(g,{746,313,721,259},"Filter 02",tr(fr,"Second filtre et résonance non implémentés.","Second filter and resonance not implemented."));panelBox(g,{746,590,721,201});panelTitle(g,768,606,677,"SATURATION",tr(fr,"Traitement de sortie","Output processing"));note(g,tr(fr,"Rack 12 slots : non implémenté.","12-slot rack: not implemented."),1000,696,445);
+ }
+ void paintMotion(Graphics& g){
+  panelBox(g,{26,254,709,542});panelTitle(g,47,270,670,"PERFORMANCE XY",tr(fr,"Champ de mouvement","Motion field"));drawXY(g);note(g,tr(fr,"Déplace le vecteur XY pour modifier le son.","Drag the XY vector to change the sound."),48,626,665);note(g,tr(fr,"Mouvements programmés et séquenceur : non implémentés.","Programmed motion and sequencer: not implemented."),48,755,665);
+  panelBox(g,{755,254,712,542});panelTitle(g,777,270,668,tr(fr,"UN MOUVEMENT / PLUSIEURS DIMENSIONS","ONE MOVEMENT / MULTIPLE DIMENSIONS"),tr(fr,"Destinations du vecteur","Vector destinations"));note(g,tr(fr,"Position et densité répondent simultanément.","Position and density respond simultaneously."),777,573,668);
+ }
+ void paintPerformance(Graphics& g){
+  panelBox(g,{26,198,702,443});panelTitle(g,47,213,660,tr(fr,"CONTRÔLE EXPRESSIF","EXPRESSIVE CONTROL"),tr(fr,"Vecteur de performance","Live performance vector"));drawXY(g);note(g,tr(fr,"Les quantités se règlent sur la page Mouvement.","Amounts are set on the Motion page."),47,584,660);
+  panelBox(g,{746,198,721,443});panelTitle(g,768,213,677,tr(fr,"MIDI POLYPHONIQUE","POLYPHONIC MIDI"),tr(fr,"Réponse de l'instrument","Instrument response"));text(g,tr(fr,"SORTIE","OUTPUT"),768,404,300,18,12,muted,true);meter(g,{768,435,676,34});note(g,"-60                         -36                         -18                         -6                    0 dB",768,475,677);
+  text(g,"4",768,520,190,49,34,champ);text(g,"2",1002,520,190,49,34,champ);text(g,"16",1230,520,190,49,34,champ);note(g,tr(fr,"Couches granulaires","Granular layers"),768,571,200);note(g,tr(fr,"Oscillateurs hybrides","Hybrid oscillators"),1002,571,220);note(g,tr(fr,"Voix","Voices"),1230,571,190);
+  panelBox(g,{26,660,1441,136});panelTitle(g,47,675,1370,tr(fr,"CONTRÔLES FIXES","FIXED ASSIGNMENTS"),tr(fr,"Macros de performance","Performance macros"));note(g,tr(fr,"Position, Cloud, Spread, Motion, Hybrid, Tone et Heat sont actifs. Space reste désactivé.","Position, Cloud, Spread, Motion, Hybrid, Tone and Heat are active. Space remains disabled."),47,735,1370);
+ }
+ void paintBrowser(Graphics& g){
+  panelBox(g,{26,198,295,600});panelTitle(g,47,214,253,"LIBERTY SOUND LIBRARY",tr(fr,"Trouvez votre équilibre.","Find your equilibrium."));note(g,tr(fr,"8 sons de cette version","8 sounds in this version"),47,741,252);
+  g.setColour(Colour(0xff303b2c));g.fillRect(342,251,1125,37);text(g,tr(fr,"NOM DU SON","SOUND NAME"),360,257,500,24,11,muted,true);text(g,tr(fr,"CATÉGORIE","CATEGORY"),1003,257,260,24,11,muted,true);text(g,tr(fr,"FAVORI","FAVORITE"),1380,257,72,24,11,muted,true);
+  for(int i=0;i<8;++i){int n=rowIds[i];if(n<0)continue;auto y=289+i*56;g.setColour(i%2?Colour(0xff222b22):Colour(0xff1c251e));g.fillRect(342,y,1125,54);text(g,catName(presetCategory(n)),1003,y+10,310,32,14,muted);}
+  note(g,tr(fr,"Banque d'usine protégée. Les presets utilisateur ne sont pas encore disponibles.","Factory sounds protected. User presets are not implemented yet."),344,773,1120);
+ }
+ template<class T> T* addControl(std::unique_ptr<T> p,Rectangle<int> bounds){auto* raw=p.get();addAndMakeVisible(*raw);raw->setBounds(bounds);controls.push_back(std::move(p));return raw;}
+ TextButton* button(String name,Rectangle<int> r,std::function<void()> fn){auto p=std::make_unique<TextButton>(name);p->onClick=std::move(fn);return addControl(std::move(p),r);}
+ Knob* knob(String id,String title,int x,int y,int w,int h){return addControl(std::make_unique<Knob>(proc,id,title),{x,y,w,h});}
+ Knob* local(const char* id,int x,int y,int w,int h){for(const auto& s:layerSpecs)if(String(s.id)==id)return knob(lid(layer,id),tr(fr,s.fr,s.en),x,y,w,h);return nullptr;}
+ Knob* global(const char* id,int x,int y,int w,int h){for(const auto& s:globalSpecs)if(String(s.id)==id)return knob(id,tr(fr,s.fr,s.en),x,y,w,h);return nullptr;}
+ void combo(const char* id,StringArray values,Rectangle<int> r){auto b=std::make_unique<ComboBox>();for(int i=0;i<values.size();++i)b->addItem(values[i],i+1);auto* raw=addControl(std::move(b),r);combos.push_back(std::make_unique<AudioProcessorValueTreeState::ComboBoxAttachment>(proc.state,lid(layer,id),*raw));}
+ void sourceCombo(Rectangle<int> r){StringArray v;for(int i=0;i<8;++i)v.add(sources()[i]);combo("source",v,r);}
+ void zoomButtons(){auto r=waveRect();int x=int(r.getRight());button("-",{x-112,267,27,24},[this]{zoom=jmax(1,zoom/2);repaint();});button("+",{x-39,267,27,24},[this]{zoom=jmin(8,zoom*2);repaint();});}
+ void clearPage(){combos.clear();controls.clear();rows.fill(nullptr);stars.fill(nullptr);rowIds.fill(-1);active=nullptr;search=nullptr;}
+ void rebuild(){
+  clearPage();const char* f[]={"MOTEUR GRANULAIRE","SAMPLE LAB","SYNTHÈSE","MODULATION","FILTRES & EFFETS","MOUVEMENT & SÉQUENCEUR","PERFORMANCE","PRESETS"};const char* e[]={"GRANULAR ENGINE","SAMPLE LAB","SYNTHESIS","MODULATION","FILTERS & EFFECTS","MOTION & SEQUENCER","PERFORMANCE","PRESET BROWSER"};
+  sound.changeItemText(1,tr(fr,"Son personnalisé","Custom sound"));
+  for(int i=0;i<8;++i){tabs[i].setButtonText(String(i+1).paddedLeft('0',2)+"  "+tr(fr,f[i],e[i]));tabs[i].setToggleState(i==page,dontSendNotification);}
+  for(int i=0;i<4;++i){layers[i].setVisible(page==0||page==1||page==4);layers[i].setButtonText(String::charToString(juce_wchar('A'+i))+"  "+tr(fr,"COUCHE","LAYER"));layers[i].setToggleState(i==layer,dontSendNotification);}
+  if(page==0){
+   sourceCombo({43,342,217,35});local("level",50,386,100,111);local("pan",156,386,100,111);
+   combo("direction",{tr(fr,"Avant","Forward"),tr(fr,"Arrière","Reverse"),tr(fr,"Aléatoire","Random")},{43,574,217,31});
+   combo("shape",{"Hann","Triangle",tr(fr,"Gaussienne","Gaussian")},{1200,562,265,34});
+   active=button(tr(fr,"COUCHE ACTIVE","LAYER ACTIVE"),{1290,197,177,44},[this]{proc.set(lid(layer,"enabled"),proc.get(lid(layer,"enabled"))>.5f?0:1);updateActive();});updateActive();
+   zoomButtons();const char* ids[]={"size","density","position","scatter","pitch","drift","spread","motion"};for(int i=0;i<8;++i)local(ids[i],67+i*176,671,124,111);
+  }
+  if(page==1){zoomButtons();sourceCombo({48,656,655,33});local("position",73,697,145,96);local("size",261,697,145,96);local("level",450,697,145,96);local("scatter",768,642,152,145);local("drift",940,642,152,145);local("spread",1112,642,152,145);local("density",1284,642,152,145);}
+  if(page==2){global("osc1",90,372,160,139);global("oscPitch1",390,372,160,139);global("osc2",810,372,160,139);global("oscPitch2",1110,372,160,139);const char* ids[]={"fm","ring","attack","release"};for(int i=0;i<4;++i)global(ids[i],65+i*170,645,140,138);}
+  if(page==3){global("lfoRate",95,602,210,175);global("lfoDepth",400,602,210,175);}
+  if(page==4){local("cutoff",190,641,175,143);global("drive",775,663,190,123);}
+  if(page==5){global("xyPos",830,348,200,175);global("xyDensity",1150,348,200,175);}
+  if(page==6){global("velocity",785,278,140,118);global("attack",952,278,140,118);global("release",1119,278,140,118);global("master",1286,278,140,118);}
+  if(page==7){
+   const String names[]={tr(fr,"Tous les sons","All sounds"),tr(fr,"Favoris","Favorites"),catName(1),catName(2),catName(3),"Init"};
+   for(int i=0;i<6;++i){auto* b=button(names[i],{47,277+i*47,253,38},[this,i]{category=i;refreshRows();});b->getProperties().set("left",true);}
+   auto e=std::make_unique<TextEditor>();e->setTextToShowWhenEmpty(tr(fr,"Rechercher un nom ou une catégorie...","Search name or category..."),muted);e->onTextChange=[this]{refreshRows();};search=addControl(std::move(e),{342,198,980,42});
+   button(tr(fr,"SON ALÉATOIRE","RANDOM SOUND"),{1334,198,133,42},[this]{loadPreset(Random::getSystemRandom().nextInt(8));});
+   for(int i=0;i<8;++i){rows[i]=button("",{350,290+i*56,620,52},[this,i]{if(rowIds[i]>=0)loadPreset(rowIds[i]);});rows[i]->getProperties().set("left",true);stars[i]=button("",{1384,298+i*56,64,36},[this,i]{int n=rowIds[i];if(n<0)return;favorites[n]=!favorites[n];proc.state.state.setProperty("favorite"+String(n),favorites[n],nullptr);refreshRows();});}
+   refreshRows();
+  }
+  resized();repaint();
+ }
+ void refreshRows(){if(page!=7||!search)return;auto q=search->getText().trim();rowIds.fill(-1);int r=0;for(int n=0;n<8;++n){bool keep=category==0||(category==1&&favorites[n])||(category>=2&&category<=4&&presetCategory(n)==category-1)||(category==5&&n==0);if(!keep||(!q.isEmpty()&&!String(presetNames()[n]).containsIgnoreCase(q)&&!catName(presetCategory(n)).containsIgnoreCase(q)))continue;rowIds[r++]=n;}for(int i=0;i<8;++i){int n=rowIds[i];rows[i]->setVisible(n>=0);stars[i]->setVisible(n>=0);if(n>=0){rows[i]->setButtonText(presetNames()[n]);rows[i]->setToggleState(n==current,dontSendNotification);stars[i]->setButtonText(favorites[n]?String::fromUTF8("★"):String::fromUTF8("☆"));stars[i]->setToggleState(favorites[n],dontSendNotification);}}repaint();}
+ void loadPreset(int i){if(i<0||i>7)return;current=i;for(auto* param:proc.getParameters())param->setValueNotifyingHost(param->getDefaultValue());for(int j=0;j<4;++j){proc.set(lid(j,"enabled"),j==0||(i>4&&j==1)?1:0);proc.set(lid(j,"source"),float((i+j)%8));proc.set(lid(j,"size"),i==0?180.f:45.f+i*95.f);proc.set(lid(j,"density"),i==0?24.f:8.f+i*7.f);proc.set(lid(j,"pitch"),j==0?0.f:12.f);proc.set(lid(j,"cutoff"),9000.f-i*750.f);proc.set(lid(j,"position"),.15f+i*.09f);proc.set(lid(j,"level"),j==0?.65f:.32f);}proc.set("attack",.02f+i*.075f);proc.set("release",.9f+i*.2f);proc.set("lfoDepth",i*.085f);proc.set("osc1",.2f);proc.set("osc2",i*.035f);sound.setSelectedId(i+2,dontSendNotification);updateActive();refreshRows();repaint();}
+ void updateActive(){if(active){bool on=proc.get(lid(layer,"enabled"))>.5f;active->setToggleState(on,dontSendNotification);active->setButtonText(on?tr(fr,"COUCHE ACTIVE","LAYER ACTIVE"):tr(fr,"COUCHE INACTIVE","LAYER INACTIVE"));}}
+ void timerCallback()override{updateActive();if(page==0||page==2){std::array<float,512> a{};auto head=proc.analysisHead.load(std::memory_order_acquire);for(unsigned n=0;n<512;++n)a[n]=proc.analysis[(head+n)%512].load(std::memory_order_relaxed)*(.5f-.5f*std::cos(2*eg::pi*n/511.f));for(int k=0;k<64;++k){float re=0,im=0;int bin=1+k*4;for(int n=0;n<512;++n){float t=2*eg::pi*bin*n/512.f;re+=a[n]*std::cos(t);im+=a[n]*std::sin(t);}float db=Decibels::gainToDecibels(std::sqrt(re*re+im*im)/128.f,-80.f);spectrum[k]=jmax(jlimit(0.f,1.f,(db+80)/80),spectrum[k]*.8f);}}repaint();}
+};
+class Editor:public AudioProcessorEditor {
+public:
+ explicit Editor(Processor& p):AudioProcessorEditor(p),surface(p){addAndMakeVisible(surface);setResizable(true,true);setResizeLimits(930,620,1800,1200);if(auto* c=getConstrainer())c->setFixedAspectRatio(1.5);setSize(1050,700);}
+ void resized()override{float scale=jmin(getWidth()/1500.f,getHeight()/1000.f);surface.setTransform(AffineTransform::scale(scale));surface.setTopLeftPosition(0,0);}
+ void paint(Graphics& g)override{g.fillAll(bg);}
+private:ReferenceSurface surface;
+};
 AudioProcessorEditor* Processor::createEditor(){return new Editor(*this);}
 }
 AudioProcessor* JUCE_CALLTYPE createPluginFilter(){return new Processor;}
