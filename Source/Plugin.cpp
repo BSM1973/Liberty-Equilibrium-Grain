@@ -263,7 +263,7 @@ public:
   g.setColour(gold.withAlpha(.65f));g.drawHorizontalLine(818,0,1500);g.setColour(Colour(0xff545b48));g.drawVerticalLine(1296,835,957);
   text(g,"PERFORMANCE",26,862,120,17,11,muted,true);text(g,"M A C R O S",26,880,130,28,19,champ,true);text(g,tr(fr,"Contrôles directs","Direct controls"),26,918,125,15,10,muted,false);
   g.setColour(Colour(0xff141a16));g.fillRect(0,971,1500,29);g.setColour(Colour(0xff4e5647));g.drawHorizontalLine(971,0,1500);
-  text(g,tr(fr,"SOURCES INTERNES ET SAMPLES  /  MIDI POLYPHONIQUE  /  V0.8","BUILT-IN AND USER SAMPLES  /  MIDI POLYPHONIC  /  V0.8"),26,978,700,15,10,muted,true);
+  text(g,tr(fr,"SOURCES INTERNES ET SAMPLES  /  MIDI POLYPHONIQUE  /  V0.9","BUILT-IN AND USER SAMPLES  /  MIDI POLYPHONIC  /  V0.9"),26,978,700,15,10,muted,true);
   text(g,"SHAPE SOUND BEYOND REALITY.",1110,978,365,15,10,muted,true,Justification::centredRight);
   for(auto pt:{Point<float>(9,9),Point<float>(1490,9),Point<float>(9,990),Point<float>(1490,990)}){g.setColour(Colour(0xff62675b));g.drawEllipse(pt.x-3,pt.y-3,6,6,1);g.drawLine(pt.x-1.5f,pt.y+1.5f,pt.x+1.5f,pt.y-1.5f,1);}
  }
@@ -274,6 +274,33 @@ public:
   if(((page==5&&motionPage==0)||(page==6&&perfPage==0))&&xyRect().contains(p)){auto r=xyRect();proc.set("xyX",jlimit(0.f,1.f,(p.x-r.getX())/r.getWidth()));proc.set("xyY",jlimit(0.f,1.f,1-(p.y-r.getY())/r.getHeight()));}
   if(page==4&&!rackPage&&!spectralPage)for(int i=0;i<2;++i){auto r=filterRect(i);if(r.contains(p))proc.set(lid(layer,i?"cutoff2":"cutoff"),20.f*std::pow(1000.f,jlimit(0.f,1.f,(p.x-r.getX())/r.getWidth())));}
  }
+#if defined(EG_QUALITY_TEST)
+ public:
+ void qcLoadFactory(int index){loadPreset(index);}
+ int qcLayout(const File& folder){
+  int issues=0;StringArray report;
+  auto audit=[&](String name,bool screenshot){
+   rebuild();int overlaps=0,outside=0,bad=0;auto bounds=getLocalBounds();auto inspect=[&](const String& x){if(x.containsChar(juce_wchar(0xfffd))||x.contains(String::fromUTF8("Ã©"))||x.contains(String::fromUTF8("Ã¨")))++bad;};
+   for(int i=0;i<getNumChildComponents();++i){auto* a=getChildComponent(i);if(!a->isVisible())continue;auto r=a->getBounds();if(!bounds.contains(r))++outside;
+    if(auto* b=dynamic_cast<Button*>(a))inspect(b->getButtonText());if(auto* k=dynamic_cast<Knob*>(a))inspect(k->label.getText());if(auto* b=dynamic_cast<ComboBox*>(a))for(int j=0;j<b->getNumItems();++j)inspect(b->getItemText(j));
+    for(int j=i+1;j<getNumChildComponents();++j){auto* b=getChildComponent(j);if(!b->isVisible())continue;auto hit=r.getIntersection(b->getBounds());if(hit.getWidth()>2&&hit.getHeight()>2){++overlaps;report.add(name+" overlap "+a->getBounds().toString()+" / "+b->getBounds().toString());}}
+   }
+   report.add(name+" overlaps="+String(overlaps)+" outside="+String(outside)+" encoding="+String(bad));issues+=overlaps+outside+bad;
+   if(screenshot){auto image=createComponentSnapshot(bounds,true,.7f);PNGImageFormat png;auto f=folder.getChildFile(name+".png");auto out=f.createOutputStream();if(out&&out->openedOk())png.writeImageToStream(image,*out);}
+  };
+  for(int lang=0;lang<2;++lang){fr=lang==0;proc.french.store(fr);String pre=fr?"FR-":"EN-";for(page=0;page<8;++page){
+   if(page==0||page==1){for(layer=0;layer<4;++layer){labPage=0;audit(pre+String(page+1)+"-region-"+String(layer+1),fr&&layer==0);if(page==1){labPage=1;audit(pre+"2-analysis-"+String(layer+1),fr&&layer==0);}}}
+   else if(page==3){for(modPage=0;modPage<5;++modPage){modUnit=0;modBank=0;stepBank=0;audit(pre+"4-mod-"+String(modPage),fr);}}
+   else if(page==4){for(int n=0;n<3;++n){rackPage=n==1;spectralPage=n==2;audit(pre+"5-fx-"+String(n),fr);}}
+   else if(page==5){for(motionPage=0;motionPage<3;++motionPage){seqBank=0;seqLane=0;audit(pre+"6-motion-"+String(motionPage),fr);}}
+   else if(page==6){for(perfPage=0;perfPage<3;++perfPage)audit(pre+"7-perf-"+String(perfPage),fr);}
+   else if(page==7){for(int n=0;n<2;++n){userBrowser=n==1;audit(pre+"8-browser-"+String(n),fr);}}
+   else audit(pre+String(page+1),fr);
+  }}
+  folder.getChildFile("ui-layout.txt").replaceWithText(report.joinIntoString("\n"));return issues;
+ }
+#endif
+
 private:
  Processor& proc;ReferenceLook look;bool fr=true;int page=0,layer=0,current=-1,zoom=1,category=0;bool rackPage=false,spectralPage=false;int motionPage=0,seqBank=0,seqLane=0,recordCount=0,perfPage=0;int labPage=0,sliceIndex=0;const eg::SampleData* analysedSample=nullptr;eg::SampleAnalysis sampleAnalysis;bool userBrowser=false;int userPage=0;File bankFolder;Array<File> userFiles;std::array<int,8> userRows{};TextEditor* userSearch=nullptr;TextButton* userPageLabel=nullptr;String userStatus;float randomStrength=.35f;std::array<std::array<Knob*,10>,2> hybridKnobs{};std::array<TextButton*,2> hybridSync{};bool recording=false;std::array<TextButton*,16> seqButtons{};TextButton* recordButton=nullptr;String midiStatus;int modPage=0,modBank=0,modUnit=0,stepBank=0;std::array<bool,eg::factoryCount> favorites{};int browserPage=0,matchCount=0;std::unique_ptr<FileChooser> chooser;String sampleStatus;TextButton* pageLabel=nullptr;std::array<TextButton*,13> categoryButtons{};
  std::array<TextButton,8> tabs;std::array<TextButton,4> layers;TextButton language,previous,next;ComboBox sound;
@@ -656,18 +683,18 @@ private:
  #define GP(k) proc.set(#k,p.k)
  GP(osc1);GP(osc2);GP(oscPitch1);GP(oscPitch2);GP(fm);GP(ring);GP(attack);GP(release);GP(master);GP(velocity);GP(lfoRate);GP(lfoDepth);GP(xyX);GP(xyY);GP(xyPos);GP(xyDensity);GP(drive);
  #undef GP
- for(int k=0;k<8;++k){proc.set("macro"+String(k),p.macros[k]);auto& l=p.mod.lfos[k];proc.set(mid("lfo",k,"rate"),l.rate);proc.set(mid("lfo",k,"phase"),l.phase);proc.set(mid("lfo",k,"shape"),float(l.shape));proc.set(mid("lfo",k,"sync"),float(l.sync));}
+ for(int k=0;k<8;++k){proc.set("macro"+String(k),p.macros[k]);auto& l=p.mod.lfos[k];proc.set(mid("lfo",k,"rate"),l.rate);proc.set(mid("lfo",k,"phase"),l.phase);proc.set(mid("lfo",k,"shape"),float(l.shape));proc.set(mid("lfo",k,"sync"),float(l.sync));auto& env=p.mod.envs[k];proc.set(mid("env",k,"attack"),env.attack);proc.set(mid("env",k,"decay"),env.decay);proc.set(mid("env",k,"sustain"),env.sustain);proc.set(mid("env",k,"release"),env.release);}
  for(int k=0;k<12;++k){auto& f=p.effects[k];proc.set(fxid(k,"type"),float(f.type));proc.set(fxid(k,"enabled"),float(f.enabled));proc.set(fxid(k,"amount"),f.amount);proc.set(fxid(k,"mix"),f.mix);}
  for(int k=0;k<64;++k){auto& r=p.mod.routes[k];proc.set(mid("route",k,"source"),float(r.source));proc.set(mid("route",k,"dest"),float(r.dest));proc.set(mid("route",k,"depth"),r.depth);proc.set(mid("route",k,"curve"),r.curve);}
  for(int k=0;k<4;++k){auto& s=p.mod.steps[k];proc.set(mid("step",k,"length"),float(s.length));proc.set(mid("step",k,"rate"),s.rate);proc.set(mid("step",k,"glide"),s.glide);proc.set(mid("step",k,"sync"),float(s.sync));for(int n=0;n<64;++n)proc.set(sid(k,n),s.values[n]);auto& f=p.mod.functions[k];proc.set(mid("function",k,"rate"),f.rate);proc.set(mid("function",k,"curve"),f.curve);proc.set(mid("function",k,"shape"),float(f.shape));proc.set(mid("function",k,"loop"),float(f.loop));}
  sound.setSelectedId(i+2,dontSendNotification);updateActive();refreshRows();repaint();
  }
  void updateActive(){if(active){bool on=proc.get(lid(layer,"enabled"))>.5f;active->setToggleState(on,dontSendNotification);active->setButtonText(on?tr(fr,"COUCHE ACTIVE","LAYER ACTIVE"):tr(fr,"COUCHE INACTIVE","LAYER INACTIVE"));}}
- void timerCallback()override{if(page==2)updateHybridControls();if(recording){if(page!=5||motionPage!=0)finishRecording();else recordPoint();}if(page==5&&motionPage==1)for(int i=0;i<16;++i)if(seqButtons[i])seqButtons[i]->setButtonText(seqButtons[i]->getToggleState()?"ON":"OFF");updateActive();if(page==4){if(rackPage){for(int i=0;i<12;++i)if(fxAmountControls[i]){int t=int(proc.get(fxid(i,"type")));fxAmountControls[i]->label.setText(fxAmount(t),dontSendNotification);fxAmountControls[i]->setEnabled(t!=0);fxMixControls[i]->setEnabled(t!=0);fxOnControls[i]->setEnabled(t!=0);}}else for(int i=0;i<2;++i)if(filterQ[i]){int m=int(proc.get(lid(layer,i?"filterMode2":"filterMode")));filterQ[i]->setEnabled(m!=0&&m!=7);}}if(page==0||page==2){std::array<float,512> a{};auto head=proc.analysisHead.load(std::memory_order_acquire);for(unsigned n=0;n<512;++n)a[n]=proc.analysis[(head+n)%512].load(std::memory_order_relaxed)*(.5f-.5f*std::cos(2*eg::pi*n/511.f));for(int k=0;k<64;++k){float re=0,im=0;int bin=1+k*4;for(int n=0;n<512;++n){float t=2*eg::pi*bin*n/512.f;re+=a[n]*std::cos(t);im+=a[n]*std::sin(t);}float db=Decibels::gainToDecibels(std::sqrt(re*re+im*im)/128.f,-80.f);spectrum[k]=jmax(jlimit(0.f,1.f,(db+80)/80),spectrum[k]*.8f);}}repaint();}
+ void timerCallback()override{if(page==2)updateHybridControls();if(recording){if(page!=5||motionPage!=0)finishRecording();else recordPoint();}if(page==5&&motionPage==1)for(int i=0;i<16;++i)if(seqButtons[i])seqButtons[i]->setButtonText(seqButtons[i]->getToggleState()?"ON":"OFF");updateActive();if(page==4){if(rackPage){for(int i=0;i<12;++i)if(fxAmountControls[i]){int t=int(proc.get(fxid(i,"type")));fxAmountControls[i]->label.setText(fxAmount(t),dontSendNotification);fxAmountControls[i]->setEnabled(t!=0);fxMixControls[i]->setEnabled(t!=0);fxOnControls[i]->setEnabled(t!=0);}}else for(int i=0;i<2;++i)if(filterQ[i]){int m=int(proc.get(lid(layer,i?"filterMode2":"filterMode")));filterQ[i]->setEnabled(m!=0&&m!=7);}}if(page==0||page==2){struct AnalysisWeights{std::array<float,512> window{};std::array<std::array<float,512>,64> re{},im{};AnalysisWeights(){for(int n=0;n<512;++n)window[n]=.5f-.5f*std::cos(2*eg::pi*n/511.f);for(int k=0;k<64;++k)for(int n=0;n<512;++n){float t=2*eg::pi*(1+k*4)*n/512.f;re[k][n]=std::cos(t);im[k][n]=std::sin(t);}}};static const AnalysisWeights weights;std::array<float,512> a{};auto head=proc.analysisHead.load(std::memory_order_acquire);for(unsigned n=0;n<512;++n)a[n]=proc.analysis[(head+n)%512].load(std::memory_order_relaxed)*weights.window[n];for(int k=0;k<64;++k){float re=0,im=0;for(int n=0;n<512;++n){re+=a[n]*weights.re[k][n];im+=a[n]*weights.im[k][n];}float db=Decibels::gainToDecibels(std::sqrt(re*re+im*im)/128.f,-80.f);spectrum[k]=jmax(jlimit(0.f,1.f,(db+80)/80),spectrum[k]*.8f);}}repaint();}
 };
 class Editor:public AudioProcessorEditor {
 public:
- explicit Editor(Processor& p):AudioProcessorEditor(p),surface(p){addAndMakeVisible(surface);setResizable(true,true);setResizeLimits(930,620,1800,1200);if(auto* c=getConstrainer())c->setFixedAspectRatio(1.5);setSize(1050,700);}
+ explicit Editor(Processor& p):AudioProcessorEditor(p),surface(p){addAndMakeVisible(surface);setResizable(true,true);setResizeLimits(780,520,1800,1200);if(auto* c=getConstrainer())c->setFixedAspectRatio(1.5);auto area=Desktop::getInstance().getDisplays().getPrimaryDisplay();int w=1050;if(area)w=jlimit(780,1050,jmin(area->userArea.getWidth()-32,int((area->userArea.getHeight()-72)*1.5f)));setSize(w,w*2/3);}
  void resized()override{float scale=jmin(getWidth()/1500.f,getHeight()/1000.f);surface.setTransform(AffineTransform::scale(scale));surface.setTopLeftPosition(0,0);}
  void paint(Graphics& g)override{g.fillAll(bg);}
 private:ReferenceSurface surface;

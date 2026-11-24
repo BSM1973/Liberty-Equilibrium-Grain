@@ -25,8 +25,9 @@ struct UserWavetable {
 class WavetableStore {
  std::array<std::atomic<const UserWavetable*>,2> current{};std::vector<std::unique_ptr<const UserWavetable>> kept;std::mutex mutex;size_t bytes=0;
 public:
+ size_t retainedBytes(){std::lock_guard<std::mutex> lock(mutex);return bytes;}
  const UserWavetable* get(int i)const{return current[i].load(std::memory_order_acquire);}
  void clear(int i){current[i].store(nullptr,std::memory_order_release);}
- bool publish(int i,std::unique_ptr<UserWavetable> p){if(!p)return false;std::lock_guard<std::mutex> lock(mutex);size_t n=p->data.size()*sizeof(UserWavetable::Frame);if(bytes+n>32u*1024u*1024u)return false;auto* raw=p.get();kept.push_back(std::move(p));bytes+=n;current[i].store(raw,std::memory_order_release);return true;}
+ bool publish(int i,std::unique_ptr<UserWavetable> p){if(!p)return false;std::lock_guard<std::mutex> lock(mutex);for(auto& old:kept)if(old->data==p->data){current[i].store(old.get(),std::memory_order_release);return true;}size_t n=p->data.size()*sizeof(UserWavetable::Frame);if(bytes+n>32u*1024u*1024u)return false;auto* raw=p.get();kept.push_back(std::move(p));bytes+=n;current[i].store(raw,std::memory_order_release);return true;}
 };
 }

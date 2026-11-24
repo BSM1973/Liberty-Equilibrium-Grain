@@ -16,6 +16,15 @@ jobs:
         run: cmake -S . -B build -A x64
       - run: cmake --build build --config Release --parallel 2
       - run: ctest --test-dir build -C Release --output-on-failure
+      - name: Upload quality reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Equilibrium-Grain-quality-Windows-x64
+          path: |
+            build/quality-reports/
+            build/Testing/Temporary/LastTest.log
+          if-no-files-found: warn
       - name: Package Windows
         shell: pwsh
         run: |
@@ -23,6 +32,7 @@ jobs:
           if (!(Test-Path "$root/VST3/Equilibrium Grain.vst3")) { throw "Missing VST3" }
           if (!(Test-Path "$root/Standalone/Equilibrium Grain.exe")) { throw "Missing standalone" }
           New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item docs/Manuel-utilisateur-FR.md dist/
           Compress-Archive -Path "$root/VST3","$root/Standalone" -DestinationPath dist/Equilibrium-Grain-Windows-x64.zip
       - uses: actions/upload-artifact@v4
         with:

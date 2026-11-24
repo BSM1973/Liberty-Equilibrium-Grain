@@ -25,6 +25,15 @@ jobs:
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0
       - run: cmake --build build --config Release --parallel 2
       - run: ctest --test-dir build -C Release --output-on-failure
+      - name: Upload quality reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Equilibrium-Grain-quality-macOS-arm64
+          path: |
+            build/quality-reports/
+            build/Testing/Temporary/LastTest.log
+          if-no-files-found: warn
       - name: Package macOS
         run: |
           set -euo pipefail
@@ -32,6 +41,7 @@ jobs:
           test -d "build/EquilibriumGrain_artefacts/Release/VST3/Equilibrium Grain.vst3"
           test -d "build/EquilibriumGrain_artefacts/Release/Standalone/Equilibrium Grain.app"
           mkdir -p dist
+          cp docs/Manuel-utilisateur-FR.md dist/
           tar -czf dist/Equilibrium-Grain-macOS-arm64.tar.gz -C build/EquilibriumGrain_artefacts/Release AU VST3 Standalone
       - uses: actions/upload-artifact@v4
         with:
