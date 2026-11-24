@@ -13,7 +13,27 @@ const Spec layerSpecs[]={{"level","Niveau","Level",0,1,.65,.01},{"pan","Panorami
 const Spec globalSpecs[]={{"osc1","Niveau OSC 1","OSC 1 level",0,1,.2,.01},{"osc2","Niveau OSC 2","OSC 2 level",0,1,0,.01},{"oscPitch1","Hauteur OSC 1","OSC 1 pitch",-24,24,0,1},{"oscPitch2","Hauteur OSC 2","OSC 2 pitch",-24,24,0,1},{"fm","FM","FM",0,8,0,.01},{"ring","Anneau","Ring",0,1,0,.01},{"attack","Attaque","Attack",.001,3,.02,.001},{"release","Relâchement","Release",.01,5,.9,.01},{"master","Sortie master","Master output",-36,0,-8,.1},{"velocity","Vélocité","Velocity",0,1,.7,.01},{"lfoRate","Vitesse LFO","LFO rate",.01,20,.2,.01},{"lfoDepth","Profondeur LFO","LFO depth",0,1,0,.01},{"xyX","Position X","Position X",0,1,.5,.01},{"xyY","Densité Y","Density Y",0,1,.5,.01},{"xyPos","Quantité position","Position amount",0,1,0,.01},{"xyDensity","Quantité densité","Density amount",0,1,0,.01},{"drive","Saturation","Drive",0,1,0,.01},{"spectralMode","Mode spectral","Spectral mode",0,4,0,1},{"spectralMix","Mix spectral","Spectral mix",0,1,.65f,.01f},{"spectralFreeze","Intensité Freeze","Freeze amount",0,1,1,.01f},{"spectralBlur","Diffusion","Blur",0,1,.45f,.01f},{"spectralStretch","Étirement","Stretch",1,8,2,.01f},{"spectralMorph","Morphing A / B","Morphing A / B",0,1,.5f,.01f},
 {"seqMode","Mode de jeu","Play mode",0,2,0,1},{"seqLength","Nombre de pas","Steps",1,64,16,1},{"seqDivision","Division","Division",0,5,2,1},{"seqSync","Sync tempo","Tempo sync",0,1,1,1},{"seqBpm","Tempo interne","Internal BPM",20,400,120,1},{"seqSwing","Swing","Swing",0,.49f,0,.01f},{"seqHuman","Humanisation","Humanize",0,1,0,.01f},{"arpMode","Mode arpège","Arp mode",0,6,0,1},{"arpOctaves","Octaves","Octaves",1,4,1,1},{"arpGate","Gate","Gate",.05f,.98f,.7f,.01f},{"seqScale","Gamme","Scale",0,4,0,1},{"seqRoot","Tonalité","Root",0,11,0,1},
 {"motionMode","Trajectoire","Trajectory",0,5,0,1},{"motionLength","Points","Points",1,64,16,1},{"motionRate","Vitesse","Rate",.01f,20,.2f,.01f},{"motionDepth","Profondeur","Depth",0,1,.75f,.01f},{"motionSync","Sync tempo","Tempo sync",0,1,0,1},{"xyPitch","Hauteur","Pitch",0,1,0,.01f},{"xyPan","Panoramique","Pan",0,1,0,.01f},{"xyTone","Filtrage","Filter",0,1,0,.01f},{"xySpread","Largeur","Spread",0,1,0,.01f},
-{"voiceMode","Mode de voix","Voice mode",0,2,0,1},{"mpeMode","Mode MPE","MPE mode",0,1,0,1},{"glideMs","Glide","Glide",0,2000,0,1},{"bendRange","Pitch Bend","Pitch bend",1,24,2,1},{"memberRange","Pitch MPE","MPE bend",1,96,48,1},{"touchAmount","Aftertouch","Aftertouch",0,1,0,.01f},{"timbreAmount","Timbre MPE","MPE timbre",0,1,0,.01f},{"stateMorph","Morph A/B","Morph A/B",0,1,0,.001f},{"morphEnabled","Morph actif","Morph enabled",0,1,0,1}};
+{"voiceMode","Mode de voix","Voice mode",0,2,0,1},{"mpeMode","Mode MPE","MPE mode",0,1,0,1},{"glideMs","Glide","Glide",0,2000,0,1},{"bendRange","Pitch Bend","Pitch bend",1,24,2,1},{"memberRange","Pitch MPE","MPE bend",1,96,48,1},{"touchAmount","Aftertouch","Aftertouch",0,1,0,.01f},{"timbreAmount","Timbre MPE","MPE timbre",0,1,0,.01f},{"stateMorph","Morph A/B","Morph A/B",0,1,0,.001f},{"morphEnabled","Morph actif","Morph enabled",0,1,0,1},
+{"oscMode1","Mode","Mode",0,9,0,1},
+{"oscUnison1","Unisson","Unison",1,16,1,1},
+{"oscDetune1","Désaccord","Detune",0,100,0,0.1},
+{"oscFine1","Accord fin","Fine tune",-100,100,0,0.1},
+{"oscWidth1","Largeur","Width",0,1,0.7,0.01},
+{"oscShape1","Forme","Shape",0,1,0.5,0.01},
+{"oscRatio1","Ratio FM","FM ratio",0.25,8,2,0.01},
+{"oscIndex1","Index FM","FM index",0,8,1,0.01},
+{"oscSub1","Sub","Sub",0,1,0,0.01},
+{"oscSync1","Hard Sync","Hard sync",0,1,0,1},
+{"oscMode2","Mode","Mode",0,9,0,1},
+{"oscUnison2","Unisson","Unison",1,16,1,1},
+{"oscDetune2","Désaccord","Detune",0,100,0,0.1},
+{"oscFine2","Accord fin","Fine tune",-100,100,0,0.1},
+{"oscWidth2","Largeur","Width",0,1,0.7,0.01},
+{"oscShape2","Forme","Shape",0,1,0.5,0.01},
+{"oscRatio2","Ratio FM","FM ratio",0.25,8,2,0.01},
+{"oscIndex2","Index FM","FM index",0,8,1,0.01},
+{"oscSub2","Sub","Sub",0,1,0,0.01},
+{"oscSync2","Hard Sync","Hard sync",0,1,0,1}};
 static String fxid(int n,const char* param){return "fx"+String(n+1)+"_"+param;}
 static String mid(const char* group,int i,const char* key){return String(group)+String(i+1)+"_"+key;}
 static String sid(int i,int k){return mid("step",i,"value")+String(k+1);}
@@ -22,7 +42,7 @@ String lid(int layer,const char* id){return String::charToString(juce_wchar('A'+
 static StringArray macroTargets(){
  StringArray ids{""};for(int l=0;l<4;++l)for(auto k:{"level","pan","size","density","position","scatter","pitch","drift","spread","motion","cutoff","cutoff2","resonance","resonance2"})ids.add(lid(l,k));
  for(auto k:{"osc1","osc2","oscPitch1","oscPitch2","fm","ring","attack","release","master","velocity","lfoRate","lfoDepth","xyX","xyY","xyPos","xyDensity","xyPitch","xyPan","xyTone","xySpread","drive","spectralMix","spectralFreeze","spectralBlur","spectralStretch","spectralMorph","motionRate","motionDepth","seqSwing","seqHuman","arpGate","glideMs","touchAmount","timbreAmount"})ids.add(k);
- for(int i=0;i<12;++i)for(auto k:{"amount","mix"})ids.add(fxid(i,k));return ids;
+ for(int i=0;i<12;++i)for(auto k:{"amount","mix"})ids.add(fxid(i,k));for(int i=1;i<=2;++i)for(auto k:{"Detune","Fine","Width","Shape","Ratio","Index","Sub"})ids.add("osc"+String(k)+String(i));return ids;
 }
 AudioProcessorValueTreeState::ParameterLayout layout(){AudioProcessorValueTreeState::ParameterLayout r;auto add=[&](String id,String name,float lo,float hi,float def,float step){r.add(std::make_unique<AudioParameterFloat>(ParameterID{id,1},name,NormalisableRange<float>(lo,hi,step),def));};for(int l=0;l<4;++l)for(auto& s:layerSpecs)add(lid(l,s.id),lid(l,s.en),s.lo,s.hi, String(s.id)=="enabled"?(l==0?1.f:0.f):s.def,s.step);for(auto& s:globalSpecs)add(s.id,s.en,s.lo,s.hi,s.def,s.step);for(int i=0;i<8;++i)add("macro"+String(i),macroNames[i],0,1,.5,.01);for(int i=0;i<12;++i){add(fxid(i,"type"),fxid(i,"type"),0,12,0,1);add(fxid(i,"enabled"),fxid(i,"enabled"),0,1,1,1);add(fxid(i,"amount"),fxid(i,"amount"),0,1,.5,.01);add(fxid(i,"mix"),fxid(i,"mix"),0,1,.5,.01);}for(int i=0;i<64;++i){add(mid("route",i,"source"),mid("route",i,"source"),0,eg::sourceN,0,1);add(mid("route",i,"dest"),mid("route",i,"dest"),0,eg::destN,0,1);add(mid("route",i,"depth"),mid("route",i,"depth"),-1,1,0,.001f);add(mid("route",i,"curve"),mid("route",i,"curve"),.25f,4,1,.01f);}
  for(int i=0;i<8;++i){add(mid("lfo",i,"rate"),mid("lfo",i,"rate"),.01f,20,.2f,.01f);add(mid("lfo",i,"phase"),mid("lfo",i,"phase"),0,1,0,.01f);add(mid("lfo",i,"shape"),mid("lfo",i,"shape"),0,5,0,1);add(mid("lfo",i,"sync"),mid("lfo",i,"sync"),0,1,0,1);for(auto k:{"attack","decay","release"})add(mid("env",i,k),mid("env",i,k),.001f,8,String(k)=="attack"?.05f:String(k)=="decay"?.3f:.6f,.001f);add(mid("env",i,"sustain"),mid("env",i,"sustain"),0,1,.7f,.01f);}
@@ -44,7 +64,7 @@ class Processor: public AudioProcessor,private Timer {public:
  std::array<std::atomic<float>,capacity> snapA{},snapB{},pendingCC{};std::array<std::atomic<int>,2048> ccMap{};
  std::atomic<int> snapshotFlags{0},learnTarget{-1},lastLearned{-1};std::atomic<bool> french{true};
  std::vector<int> targetIndices;std::array<int,8> mapTargets{};std::array<float,8> mapDepth{},mapValue{};bool morphActive=false,customMacros=false;float morphPosition=0;int lastSeqMode=0;
- static bool isChoice(const String& id){return id.endsWith("_source")||id.endsWith("_dest")||id.endsWith("_enabled")||id.endsWith("_type")||id.endsWith("_shape")||id.endsWith("_sync")||id.endsWith("_loop")||id.endsWith("_direction")||id.endsWith("_sampleMode")||id.endsWith("_normalize")||id.contains("filterMode")||id.endsWith("_filterRouting")||id.endsWith("_length")||id.endsWith("_root")||id.endsWith("_ratchet")||id.endsWith("_target")||id.endsWith("Mode")||id.endsWith("Length")||id.endsWith("Division")||id.endsWith("Sync")||id.endsWith("Scale")||id.endsWith("Root")||id.endsWith("Octaves");}
+ static bool isChoice(const String& id){return id.startsWith("oscMode")||id.startsWith("oscUnison")||id.startsWith("oscSync")||id.endsWith("_source")||id.endsWith("_dest")||id.endsWith("_enabled")||id.endsWith("_type")||id.endsWith("_shape")||id.endsWith("_sync")||id.endsWith("_loop")||id.endsWith("_direction")||id.endsWith("_sampleMode")||id.endsWith("_normalize")||id.contains("filterMode")||id.endsWith("_filterRouting")||id.endsWith("_length")||id.endsWith("_root")||id.endsWith("_ratchet")||id.endsWith("_target")||id.endsWith("Mode")||id.endsWith("Length")||id.endsWith("Division")||id.endsWith("Sync")||id.endsWith("Scale")||id.endsWith("Root")||id.endsWith("Octaves");}
  static bool morphable(const String& id){return id!="stateMorph"&&id!="morphEnabled"&&!id.startsWith("macroMap")&&id!="voiceMode"&&id!="mpeMode"&&id!="bendRange"&&id!="memberRange"&&id!="seqMode";}
  int indexOf(const String& id)const{if(auto* p=state.getParameter(id))return p->getParameterIndex();return -1;}
  float normalized(int i)const{if(i<0||i>=capacity||!params[size_t(i)])return 0;return params[size_t(i)]->getValue();}
@@ -75,6 +95,7 @@ const String getName()const override{return "Equilibrium Grain";}bool acceptsMid
 void processBlock(AudioBuffer<float>& b,MidiBuffer& midi)override{ScopedNoDenormals nd;b.clear();if(b.getNumChannels()<2)return;prepareMapping();eg::Settings s;for(int i=0;i<4;++i){auto& l=s.layers[i];auto v=[&](const char* id){return audioValue(lid(i,id));};l.level=v("level");l.pan=v("pan");l.size=v("size");l.density=v("density");l.position=v("position");l.scatter=v("scatter");l.pitch=v("pitch");l.drift=v("drift");l.spread=v("spread");l.motion=v("motion");l.cutoff=v("cutoff");l.cutoff2=v("cutoff2");l.resonance=v("resonance");l.resonance2=v("resonance2");l.filterMode=int(v("filterMode"));l.filterMode2=int(v("filterMode2"));l.filterRouting=int(v("filterRouting"));l.source=int(v("source"));l.direction=int(v("direction"));l.shape=int(v("shape"));l.enabled=v("enabled")>.5f;l.sampleMode=v("sampleMode")>.5f;l.root=int(v("root"));l.start=v("start");l.end=v("end");l.fadeIn=v("fadeIn");l.fadeOut=v("fadeOut");l.normalize=v("normalize")>.5f;}
 #define READ(x) s.x=audioValue(#x)
 READ(osc1);READ(osc2);READ(oscPitch1);READ(oscPitch2);READ(fm);READ(ring);READ(attack);READ(release);READ(master);READ(velocity);READ(lfoRate);READ(lfoDepth);READ(xyX);READ(xyY);READ(xyPos);READ(xyDensity);READ(drive);READ(xyPitch);READ(xyPan);READ(xyTone);READ(xySpread);
+ for(int i=0;i<2;++i){auto& h=s.hybrid[i];auto v=[&](const char* k){return audioValue("osc"+String(k)+String(i+1));};h.mode=int(v("Mode"));h.unison=int(v("Unison"));h.detune=v("Detune");h.fine=v("Fine");h.width=v("Width");h.shape=v("Shape");h.ratio=v("Ratio");h.index=v("Index");h.sub=v("Sub");h.sync=v("Sync")>.5f;}
 #undef READ
 for(int i=0;i<8;++i)s.macros[i]=mapTargets[i]>=0?.5f:audioValue("macro"+String(i));for(int i=0;i<12;++i){auto& fx=s.effects[i];fx.type=int(audioValue(fxid(i,"type")));fx.enabled=audioValue(fxid(i,"enabled"))>.5f;fx.amount=audioValue(fxid(i,"amount"));fx.mix=audioValue(fxid(i,"mix"));}readMod(s.mod);if(auto* ph=getPlayHead())if(auto pos=ph->getPosition())if(auto bpm=pos->getBpm())s.mod.bpm=float(*bpm);
  auto seq=readSequence(s.mod.bpm);auto mot=readMotion(s.mod.bpm);eg::MotionPoint base{s.xyX,s.xyY};double sr=std::max(1.,getSampleRate());
@@ -171,7 +192,7 @@ public:
   if(id.endsWith("_density"))slider.setTextValueSuffix(" Hz");
   if(id.endsWith("_pitch")||id.endsWith("_drift")||id.startsWith("oscPitch"))slider.setTextValueSuffix(" st");
   if(id.endsWith("_cutoff")||id.endsWith("_cutoff2"))slider.setTextValueSuffix(" Hz");
-  if(id=="master")slider.setTextValueSuffix(" dB");
+  if(id=="master")slider.setTextValueSuffix(" dB");if(id.startsWith("oscFine")||id.startsWith("oscDetune"))slider.setTextValueSuffix(" ct");
  }
  void resized()override{auto r=getLocalBounds();label.setBounds(r.removeFromTop(20));slider.setBounds(r);}
 };
@@ -189,7 +210,7 @@ public:
   for(int i=0;i<eg::factoryCount;++i)favorites[i]=bool(proc.state.state.getProperty("factoryFav_"+String(i),false));
   rebuild();startTimerHz(20);
  }
- ~ReferenceSurface()override{stopTimer();chooser.reset();clearPage();setLookAndFeel(nullptr);}
+ ~ReferenceSurface()override{proc.engine->monitorHybrid.store(false);stopTimer();chooser.reset();clearPage();setLookAndFeel(nullptr);}
  bool isInterestedInFileDrag(const StringArray& files)override{return (page==0||page==1)&&files.size()==1&&File(files[0]).hasFileExtension("wav;wave;aif;aiff;aifc;flac");}
  void filesDropped(const StringArray& files,int,int)override{if(isInterestedInFileDrag(files))importSample(File(files[0]),layer);}
 
@@ -217,7 +238,7 @@ public:
   g.setColour(gold.withAlpha(.65f));g.drawHorizontalLine(818,0,1500);g.setColour(Colour(0xff545b48));g.drawVerticalLine(1296,835,957);
   text(g,"PERFORMANCE",26,862,120,17,11,muted,true);text(g,"M A C R O S",26,880,130,28,19,champ,true);text(g,tr(fr,"Contrôles directs","Direct controls"),26,918,125,15,10,muted,false);
   g.setColour(Colour(0xff141a16));g.fillRect(0,971,1500,29);g.setColour(Colour(0xff4e5647));g.drawHorizontalLine(971,0,1500);
-  text(g,tr(fr,"SOURCES INTERNES ET SAMPLES  /  MIDI POLYPHONIQUE  /  V0.6","BUILT-IN AND USER SAMPLES  /  MIDI POLYPHONIC  /  V0.6"),26,978,700,15,10,muted,true);
+  text(g,tr(fr,"SOURCES INTERNES ET SAMPLES  /  MIDI POLYPHONIQUE  /  V0.7","BUILT-IN AND USER SAMPLES  /  MIDI POLYPHONIC  /  V0.7"),26,978,700,15,10,muted,true);
   text(g,"SHAPE SOUND BEYOND REALITY.",1110,978,365,15,10,muted,true,Justification::centredRight);
   for(auto pt:{Point<float>(9,9),Point<float>(1490,9),Point<float>(9,990),Point<float>(1490,990)}){g.setColour(Colour(0xff62675b));g.drawEllipse(pt.x-3,pt.y-3,6,6,1);g.drawLine(pt.x-1.5f,pt.y+1.5f,pt.x+1.5f,pt.y-1.5f,1);}
  }
@@ -229,7 +250,7 @@ public:
   if(page==4&&!rackPage&&!spectralPage)for(int i=0;i<2;++i){auto r=filterRect(i);if(r.contains(p))proc.set(lid(layer,i?"cutoff2":"cutoff"),20.f*std::pow(1000.f,jlimit(0.f,1.f,(p.x-r.getX())/r.getWidth())));}
  }
 private:
- Processor& proc;ReferenceLook look;bool fr=true;int page=0,layer=0,current=-1,zoom=1,category=0;bool rackPage=false,spectralPage=false;int motionPage=0,seqBank=0,seqLane=0,recordCount=0,perfPage=0;bool recording=false;std::array<TextButton*,16> seqButtons{};TextButton* recordButton=nullptr;String midiStatus;int modPage=0,modBank=0,modUnit=0,stepBank=0;std::array<bool,eg::factoryCount> favorites{};int browserPage=0,matchCount=0;std::unique_ptr<FileChooser> chooser;String sampleStatus;TextButton* pageLabel=nullptr;std::array<TextButton*,13> categoryButtons{};
+ Processor& proc;ReferenceLook look;bool fr=true;int page=0,layer=0,current=-1,zoom=1,category=0;bool rackPage=false,spectralPage=false;int motionPage=0,seqBank=0,seqLane=0,recordCount=0,perfPage=0;std::array<std::array<Knob*,10>,2> hybridKnobs{};std::array<TextButton*,2> hybridSync{};bool recording=false;std::array<TextButton*,16> seqButtons{};TextButton* recordButton=nullptr;String midiStatus;int modPage=0,modBank=0,modUnit=0,stepBank=0;std::array<bool,eg::factoryCount> favorites{};int browserPage=0,matchCount=0;std::unique_ptr<FileChooser> chooser;String sampleStatus;TextButton* pageLabel=nullptr;std::array<TextButton*,13> categoryButtons{};
  std::array<TextButton,8> tabs;std::array<TextButton,4> layers;TextButton language,previous,next;ComboBox sound;
  std::array<std::unique_ptr<Knob>,8> macros;std::unique_ptr<Knob> master;
  std::vector<std::unique_ptr<Component>> controls;std::vector<std::unique_ptr<AudioProcessorValueTreeState::ComboBoxAttachment>> combos;std::vector<std::unique_ptr<AudioProcessorValueTreeState::ButtonAttachment>> switches;
@@ -282,10 +303,32 @@ private:
   wave(g);panelBox(g,{26,568,700,228});panelTitle(g,47,583,660,"SOURCE LAB",tr(fr,"Région et préparation","Region & preparation"));note(g,sampleStatus.isNotEmpty()?sampleStatus:tr(fr,"WAV / AIFF / FLAC : glisser ou importer (30 s max.)","WAV / AIFF / FLAC: drag or import (30 s max.)"),48,634,650);
   panelBox(g,{747,568,720,228});panelTitle(g,768,583,670,tr(fr,"VARIATION PAR GRAIN","PER-GRAIN VARIATION"),tr(fr,"Variation des grains","Grain variation"));
  }
+ StringArray hybridModes()const{return {tr(fr,"Sinusoïde","Sine"),"Triangle",tr(fr,"Dent de scie","Saw"),tr(fr,"Carré","Square"),tr(fr,"Impulsion / PWM","Pulse / PWM"),"Wavetable","FM / Phase Mod",tr(fr,"Bruit blanc","White noise"),tr(fr,"Sub-oscillateur","Sub oscillator"),tr(fr,"Oscillateur spectral","Spectral oscillator")};}
  void paintSynth(Graphics& g){
-  for(int i=0;i<2;++i){int x=26+i*720;panelBox(g,{float(x),198,702,352});panelTitle(g,x+21,214,660,tr(fr,"SYNTHÈSE HYBRIDE","HYBRID SYNTHESIS"),"Oscillator 0"+String(i+1));note(g,tr(fr,"Sinusoïde / accord indépendant","Sine / independent tuning"),x+21,278,660);g.setColour(gold.withAlpha(.8f));Path p;for(int k=0;k<630;++k){float yy=338.f+13.f*std::sin(k*.028f);if(k==0)p.startNewSubPath(float(x+35),yy);else p.lineTo(float(x+35+k),yy);}g.strokePath(p,PathStrokeType(1.2f));note(g,tr(fr,"Autres formes et unisson : non implémentés","Other waveforms and unison: not implemented"),x+21,522,660);}
-  panelBox(g,{26,568,702,228});panelTitle(g,47,583,660,tr(fr,"MODULATION ET MIXAGE","MODULATION & MIX"),tr(fr,"Interaction hybride","Hybrid interaction"));
-  panelBox(g,{746,568,721,228});panelTitle(g,767,583,680,tr(fr,"SIGNAL DE SORTIE","OUTPUT AUDIO"),tr(fr,"Analyse de sortie","Output analysis"));drawSpectrum(g,{768,655,677,121});
+  const auto names=hybridModes();
+  for(int i=0;i<2;++i){int x=26+i*720;panelBox(g,{float(x),198,702,448});panelTitle(g,x+21,211,660,tr(fr,"SYNTHÈSE HYBRIDE","HYBRID SYNTHESIS"),"Oscillator 0"+String(i+1));
+   int mode=jlimit(0,9,int(proc.get("oscMode"+String(i+1))));text(g,names[mode],x+322,237,339,24,15,champ,true,Justification::centredRight);
+   auto r=Rectangle<float>(float(x+21),317,660,79);g.setColour(Colour(0xff19211e));g.fillRect(r);g.setColour(Colour(0xff43503d));g.drawRect(r,1);
+   for(int j=1;j<12;++j){g.setColour(Colour(0xff344036));g.drawVerticalLine(int(r.getX()+j*r.getWidth()/12),r.getY(),r.getBottom());}g.drawHorizontalLine(int(r.getCentreY()),r.getX(),r.getRight());
+   auto head=proc.engine->hybridHead.load(std::memory_order_acquire);Path wave;for(int n=0;n<512;++n){float v=proc.engine->hybridView[i][(head+unsigned(n))%512].load(std::memory_order_relaxed);float px=r.getX()+r.getWidth()*n/511.f,py=r.getCentreY()-jlimit(-1.f,1.f,v*2.f)*r.getHeight()*.43f;if(n==0)wave.startNewSubPath(px,py);else wave.lineTo(px,py);}g.setColour(champ);g.strokePath(wave,PathStrokeType(1.4f));
+   text(g,tr(fr,"SIGNAL RÉEL / AVANT MIXAGE","LIVE SIGNAL / PRE-MIX"),x+30,321,350,15,10,muted,true);
+  }
+  panelBox(g,{26,656,702,140});text(g,tr(fr,"INTERACTION OSC 2 VERS OSC 1 / MIXAGE","OSC 2 TO OSC 1 / MIX"),47,665,660,22,13,muted,true);
+  panelBox(g,{746,656,721,140});text(g,tr(fr,"ANALYSE DU SIGNAL DE SORTIE","OUTPUT SIGNAL ANALYSIS"),767,665,680,22,13,muted,true);drawSpectrum(g,{768,697,677,83});
+ }
+ void updateHybridControls(){
+  for(int i=0;i<2;++i){if(!hybridKnobs[i][0])continue;auto suf=String(i+1);int mode=int(proc.get("oscMode"+suf)),u=int(proc.get("oscUnison"+suf));
+   hybridKnobs[i][4]->setEnabled(u>1&&mode!=7);hybridKnobs[i][5]->setEnabled(u>1);hybridKnobs[i][6]->setEnabled(mode==4||mode==5||mode==9);hybridKnobs[i][6]->label.setText(mode==4?tr(fr,"Largeur pulse","Pulse width"):mode==5?tr(fr,"Position WT","WT position"):mode==9?tr(fr,"Spectre A/B","Spectrum A/B"):tr(fr,"Forme","Shape"),dontSendNotification);
+   hybridKnobs[i][7]->setEnabled(mode==6);hybridKnobs[i][8]->setEnabled(mode==6);hybridKnobs[i][9]->setEnabled(mode!=8);hybridKnobs[i][1]->setEnabled(mode!=7||proc.get("oscSub"+suf)>0);hybridKnobs[i][2]->setEnabled(mode!=7||proc.get("oscSub"+suf)>0);if(hybridSync[i])hybridSync[i]->setEnabled(mode!=7&&mode!=8);
+  }
+ }
+ void buildHybrid(){
+  for(int i=0;i<2;++i){int x=26+i*720;String suf=String(i+1);modCombo("oscMode"+suf,hybridModes(),{x+21,272,480,34});
+   auto toggle=std::make_unique<TextButton>("HARD SYNC");toggle->setClickingTogglesState(true);auto* raw=addControl(std::move(toggle),{x+515,272,166,34});switches.push_back(std::make_unique<AudioProcessorValueTreeState::ButtonAttachment>(proc.state,"oscSync"+suf,*raw));hybridSync[i]=raw;
+   String ids[]={"osc"+suf,"oscPitch"+suf,"oscFine"+suf,"oscUnison"+suf,"oscDetune"+suf,"oscWidth"+suf,"oscShape"+suf,"oscRatio"+suf,"oscIndex"+suf,"oscSub"+suf};
+   for(int k=0;k<10;++k)hybridKnobs[i][k]=global(ids[k].toRawUTF8(),x+22+(k%5)*132,405+(k/5)*119,126,116);
+  }
+  const char* ids[]={"fm","ring","attack","release"};for(int i=0;i<4;++i)global(ids[i],52+i*170,686,155,107);updateHybridControls();
  }
  StringArray sourceNames()const{
   StringArray s{tr(fr,"Aucune","None")};for(int i=1;i<=8;++i)s.add("LFO "+String(i));for(int i=1;i<=8;++i)s.add(tr(fr,"Enveloppe ","Envelope ")+String(i));for(int i=1;i<=4;++i)s.add("Step "+String(i));for(int i=1;i<=4;++i)s.add(tr(fr,"Fonction ","Function ")+String(i));s.add(tr(fr,"Vélocité","Velocity"));s.add(tr(fr,"Note MIDI","MIDI note"));s.add("Mod Wheel");s.add("Aftertouch");s.add("XY X");s.add("XY Y");return s;
@@ -462,9 +505,9 @@ private:
  void sourceCombo(Rectangle<int> r){StringArray v;for(int i=0;i<8;++i)v.add(sources()[i]);combo("source",v,r);}
  void zoomButtons(){auto r=waveRect();int x=int(r.getRight());button("-",{x-112,267,27,24},[this]{zoom=jmax(1,zoom/2);repaint();});button("+",{x-39,267,27,24},[this]{zoom=jmin(8,zoom*2);repaint();});}
  std::vector<std::unique_ptr<AudioProcessorValueTreeState::SliderAttachment>> modSliders;
- void clearPage(){recordButton=nullptr;seqButtons.fill(nullptr);pageLabel=nullptr;categoryButtons.fill(nullptr);modSliders.clear();driveAttachment.reset();fxAmountControls.fill(nullptr);fxMixControls.fill(nullptr);fxOnControls.fill(nullptr);filterQ.fill(nullptr);switches.clear();combos.clear();controls.clear();rows.fill(nullptr);stars.fill(nullptr);rowIds.fill(-1);active=nullptr;search=nullptr;}
+ void clearPage(){for(auto& a:hybridKnobs)a.fill(nullptr);hybridSync.fill(nullptr);recordButton=nullptr;seqButtons.fill(nullptr);pageLabel=nullptr;categoryButtons.fill(nullptr);modSliders.clear();driveAttachment.reset();fxAmountControls.fill(nullptr);fxMixControls.fill(nullptr);fxOnControls.fill(nullptr);filterQ.fill(nullptr);switches.clear();combos.clear();controls.clear();rows.fill(nullptr);stars.fill(nullptr);rowIds.fill(-1);active=nullptr;search=nullptr;}
  void rebuild(){
-  clearPage();const char* f[]={"MOTEUR GRANULAIRE","SAMPLE LAB","SYNTHÈSE","MODULATION","FILTRES & EFFETS","MOUVEMENT & SÉQUENCEUR","PERFORMANCE","PRESETS"};const char* e[]={"GRANULAR ENGINE","SAMPLE LAB","SYNTHESIS","MODULATION","FILTERS & EFFECTS","MOTION & SEQUENCER","PERFORMANCE","PRESET BROWSER"};
+  proc.engine->monitorHybrid.store(page==2,std::memory_order_relaxed);clearPage();const char* f[]={"MOTEUR GRANULAIRE","SAMPLE LAB","SYNTHÈSE","MODULATION","FILTRES & EFFETS","MOUVEMENT & SÉQUENCEUR","PERFORMANCE","PRESETS"};const char* e[]={"GRANULAR ENGINE","SAMPLE LAB","SYNTHESIS","MODULATION","FILTERS & EFFECTS","MOTION & SEQUENCER","PERFORMANCE","PRESET BROWSER"};
   sound.changeItemText(1,tr(fr,"Son personnalisé","Custom sound"));
   for(int i=0;i<8;++i){tabs[i].setButtonText(String(i+1).paddedLeft('0',2)+"  "+tr(fr,f[i],e[i]));tabs[i].setToggleState(i==page,dontSendNotification);}
   for(int i=0;i<4;++i){layers[i].setVisible(page==0||page==1||page==4&&!rackPage&&!spectralPage);layers[i].setBounds(26+i*91,page==4?263:198,84,41);layers[i].setButtonText(String::charToString(juce_wchar('A'+i))+"  "+tr(fr,"COUCHE","LAYER"));layers[i].setToggleState(i==layer,dontSendNotification);}
@@ -476,7 +519,7 @@ private:
    zoomButtons();const char* ids[]={"size","density","position","scatter","pitch","drift","spread","motion"};for(int i=0;i<8;++i)local(ids[i],67+i*176,671,124,111);
   }
   if(page==1){zoomButtons();button(tr(fr,"IMPORTER","IMPORT"),{1060,198,170,41},[this]{chooseSample();});sampleToggle("sampleMode",tr(fr,"SAMPLE PERSONNEL","USER SAMPLE"),{1240,198,225,41});sourceCombo({48,656,415,33});sampleToggle("normalize",tr(fr,"NORMALISER","NORMALIZE"),{473,656,230,33});const char* ids[]={"start","end","fadeIn","fadeOut","root"};for(int i=0;i<5;++i)local(ids[i],49+i*131,695,124,98);local("scatter",768,642,152,145);local("drift",940,642,152,145);local("spread",1112,642,152,145);local("density",1284,642,152,145);}
-  if(page==2){global("osc1",90,372,160,139);global("oscPitch1",390,372,160,139);global("osc2",810,372,160,139);global("oscPitch2",1110,372,160,139);const char* ids[]={"fm","ring","attack","release"};for(int i=0;i<4;++i)global(ids[i],65+i*170,645,140,138);}
+  if(page==2)buildHybrid();
   if(page==3)buildMod();
   if(page==4){
    auto* filters=button(tr(fr,"FILTRES DES COUCHES","LAYER FILTERS"),{26,198,210,41},[this]{rackPage=false;spectralPage=false;rebuild();});filters->setToggleState(!rackPage&&!spectralPage,dontSendNotification);
@@ -529,7 +572,7 @@ private:
  sound.setSelectedId(i+2,dontSendNotification);updateActive();refreshRows();repaint();
  }
  void updateActive(){if(active){bool on=proc.get(lid(layer,"enabled"))>.5f;active->setToggleState(on,dontSendNotification);active->setButtonText(on?tr(fr,"COUCHE ACTIVE","LAYER ACTIVE"):tr(fr,"COUCHE INACTIVE","LAYER INACTIVE"));}}
- void timerCallback()override{if(recording){if(page!=5||motionPage!=0)finishRecording();else recordPoint();}if(page==5&&motionPage==1)for(int i=0;i<16;++i)if(seqButtons[i])seqButtons[i]->setButtonText(seqButtons[i]->getToggleState()?"ON":"OFF");updateActive();if(page==4){if(rackPage){for(int i=0;i<12;++i)if(fxAmountControls[i]){int t=int(proc.get(fxid(i,"type")));fxAmountControls[i]->label.setText(fxAmount(t),dontSendNotification);fxAmountControls[i]->setEnabled(t!=0);fxMixControls[i]->setEnabled(t!=0);fxOnControls[i]->setEnabled(t!=0);}}else for(int i=0;i<2;++i)if(filterQ[i]){int m=int(proc.get(lid(layer,i?"filterMode2":"filterMode")));filterQ[i]->setEnabled(m!=0&&m!=7);}}if(page==0||page==2){std::array<float,512> a{};auto head=proc.analysisHead.load(std::memory_order_acquire);for(unsigned n=0;n<512;++n)a[n]=proc.analysis[(head+n)%512].load(std::memory_order_relaxed)*(.5f-.5f*std::cos(2*eg::pi*n/511.f));for(int k=0;k<64;++k){float re=0,im=0;int bin=1+k*4;for(int n=0;n<512;++n){float t=2*eg::pi*bin*n/512.f;re+=a[n]*std::cos(t);im+=a[n]*std::sin(t);}float db=Decibels::gainToDecibels(std::sqrt(re*re+im*im)/128.f,-80.f);spectrum[k]=jmax(jlimit(0.f,1.f,(db+80)/80),spectrum[k]*.8f);}}repaint();}
+ void timerCallback()override{if(page==2)updateHybridControls();if(recording){if(page!=5||motionPage!=0)finishRecording();else recordPoint();}if(page==5&&motionPage==1)for(int i=0;i<16;++i)if(seqButtons[i])seqButtons[i]->setButtonText(seqButtons[i]->getToggleState()?"ON":"OFF");updateActive();if(page==4){if(rackPage){for(int i=0;i<12;++i)if(fxAmountControls[i]){int t=int(proc.get(fxid(i,"type")));fxAmountControls[i]->label.setText(fxAmount(t),dontSendNotification);fxAmountControls[i]->setEnabled(t!=0);fxMixControls[i]->setEnabled(t!=0);fxOnControls[i]->setEnabled(t!=0);}}else for(int i=0;i<2;++i)if(filterQ[i]){int m=int(proc.get(lid(layer,i?"filterMode2":"filterMode")));filterQ[i]->setEnabled(m!=0&&m!=7);}}if(page==0||page==2){std::array<float,512> a{};auto head=proc.analysisHead.load(std::memory_order_acquire);for(unsigned n=0;n<512;++n)a[n]=proc.analysis[(head+n)%512].load(std::memory_order_relaxed)*(.5f-.5f*std::cos(2*eg::pi*n/511.f));for(int k=0;k<64;++k){float re=0,im=0;int bin=1+k*4;for(int n=0;n<512;++n){float t=2*eg::pi*bin*n/512.f;re+=a[n]*std::cos(t);im+=a[n]*std::sin(t);}float db=Decibels::gainToDecibels(std::sqrt(re*re+im*im)/128.f,-80.f);spectrum[k]=jmax(jlimit(0.f,1.f,(db+80)/80),spectrum[k]*.8f);}}repaint();}
 };
 class Editor:public AudioProcessorEditor {
 public:
