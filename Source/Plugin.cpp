@@ -1,11 +1,13 @@
 #include <juce_audio_utils/juce_audio_utils.h>
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "GrainEngine.h"
+#include "FactoryPresets.h"
+#include <juce_audio_formats/juce_audio_formats.h>
 using namespace juce;
 namespace {
 const Colour bg(0xff151719),panel(0xff25282b),gold(0xffc5a64a),champ(0xffd4bc76),ink(0xffe8e8e5),muted(0xff989c9f);
 struct Spec {const char* id;const char* fr;const char* en;float lo,hi,def,step;};
-const Spec layerSpecs[]={{"level","Niveau","Level",0,1,.65,.01},{"pan","Panoramique","Pan",-1,1,0,.01},{"size","Taille","Size",1,2000,180,1},{"density","Densité","Density",1,160,24,1},{"position","Position","Position",0,1,.35,.01},{"scatter","Dispersion","Scatter",0,1,.05,.01},{"pitch","Hauteur","Pitch",-36,36,0,1},{"drift","Dérive","Pitch drift",0,12,0,.01},{"spread","Largeur","Spread",0,1,.4,.01},{"motion","Mouvement","Movement",0,1,.04,.01},{"cutoff","Fréquence","Cutoff",20,20000,9000,1},{"cutoff2","Fréquence","Cutoff",20,20000,18000,1},{"resonance","Résonance","Resonance",.5,12,.707,.001},{"resonance2","Résonance","Resonance",.5,12,.707,.001},{"filterMode","Mode filtre 1","Filter 1 mode",0,7,7,1},{"filterMode2","Mode filtre 2","Filter 2 mode",0,7,0,1},{"filterRouting","Routage","Routing",0,1,0,1},{"source","Source","Source",0,7,0,1},{"direction","Direction","Direction",0,2,0,1},{"shape","Enveloppe","Envelope",0,2,0,1},{"enabled","Active","Enabled",0,1,1,1}};
+const Spec layerSpecs[]={{"level","Niveau","Level",0,1,.65,.01},{"pan","Panoramique","Pan",-1,1,0,.01},{"size","Taille","Size",1,2000,180,1},{"density","Densité","Density",1,160,24,1},{"position","Position","Position",0,1,.35,.01},{"scatter","Dispersion","Scatter",0,1,.05,.01},{"pitch","Hauteur","Pitch",-36,36,0,1},{"drift","Dérive","Pitch drift",0,12,0,.01},{"spread","Largeur","Spread",0,1,.4,.01},{"motion","Mouvement","Movement",0,1,.04,.01},{"cutoff","Fréquence","Cutoff",20,20000,9000,1},{"cutoff2","Fréquence","Cutoff",20,20000,18000,1},{"resonance","Résonance","Resonance",.5,12,.707,.001},{"resonance2","Résonance","Resonance",.5,12,.707,.001},{"filterMode","Mode filtre 1","Filter 1 mode",0,7,7,1},{"filterMode2","Mode filtre 2","Filter 2 mode",0,7,0,1},{"filterRouting","Routage","Routing",0,1,0,1},{"source","Source","Source",0,7,0,1},{"direction","Direction","Direction",0,2,0,1},{"shape","Enveloppe","Envelope",0,2,0,1},{"enabled","Active","Enabled",0,1,1,1},{"sampleMode","Sample personnel","User sample",0,1,0,1},{"root","Note fondamentale","Root note",0,127,60,1},{"start","Début","Start",0,1,0,.001f},{"end","Fin","End",0,1,1,.001f},{"fadeIn","Fondu entrée","Fade in",0,.5f,0,.001f},{"fadeOut","Fondu sortie","Fade out",0,.5f,0,.001f},{"normalize","Normaliser","Normalize",0,1,0,1}};
 const Spec globalSpecs[]={{"osc1","Niveau OSC 1","OSC 1 level",0,1,.2,.01},{"osc2","Niveau OSC 2","OSC 2 level",0,1,0,.01},{"oscPitch1","Hauteur OSC 1","OSC 1 pitch",-24,24,0,1},{"oscPitch2","Hauteur OSC 2","OSC 2 pitch",-24,24,0,1},{"fm","FM","FM",0,8,0,.01},{"ring","Anneau","Ring",0,1,0,.01},{"attack","Attaque","Attack",.001,3,.02,.001},{"release","Relâchement","Release",.01,5,.9,.01},{"master","Sortie master","Master output",-36,0,-8,.1},{"velocity","Vélocité","Velocity",0,1,.7,.01},{"lfoRate","Vitesse LFO","LFO rate",.01,20,.2,.01},{"lfoDepth","Profondeur LFO","LFO depth",0,1,0,.01},{"xyX","Position X","Position X",0,1,.5,.01},{"xyY","Densité Y","Density Y",0,1,.5,.01},{"xyPos","Quantité position","Position amount",0,1,0,.01},{"xyDensity","Quantité densité","Density amount",0,1,0,.01},{"drive","Saturation","Drive",0,1,0,.01}};
 static String fxid(int n,const char* param){return "fx"+String(n+1)+"_"+param;}
 static String mid(const char* group,int i,const char* key){return String(group)+String(i+1)+"_"+key;}
@@ -22,7 +24,7 @@ void drawRotarySlider(Graphics& g,int x,int y,int w,int h,float pos,float start,
 class Processor: public AudioProcessor {public: Processor():AudioProcessor(BusesProperties().withOutput("Stereo",AudioChannelSet::stereo(),true)),state(*this,nullptr,"EG",layout()),engine(std::make_unique<eg::Engine>()){}
 AudioProcessorValueTreeState state;std::unique_ptr<eg::Engine> engine;std::atomic<float> peak{0},peakR{0};std::array<std::atomic<float>,512> analysis{};std::atomic<unsigned> analysisHead{0};float get(String id)const{return state.getRawParameterValue(id)->load();}void set(String id,float x){if(auto* p=state.getParameter(id)){p->beginChangeGesture();p->setValueNotifyingHost(p->convertTo0to1(x));p->endChangeGesture();}}
 const String getName()const override{return "Equilibrium Grain";}bool acceptsMidi()const override{return true;}bool producesMidi()const override{return false;}bool isMidiEffect()const override{return false;}double getTailLengthSeconds()const override{return 12;}int getNumPrograms()override{return 1;}int getCurrentProgram()override{return 0;}void setCurrentProgram(int)override{}const String getProgramName(int)override{return "Init";}void changeProgramName(int,const String&)override{}bool hasEditor()const override{return true;}AudioProcessorEditor* createEditor()override;void prepareToPlay(double r,int)override{engine->prepare(r);}void releaseResources()override{}bool isBusesLayoutSupported(const BusesLayout& l)const override{return l.getMainOutputChannelSet()==AudioChannelSet::stereo();}
-void processBlock(AudioBuffer<float>& b,MidiBuffer& midi)override{ScopedNoDenormals nd;b.clear();if(b.getNumChannels()<2)return;eg::Settings s;for(int i=0;i<4;++i){auto& l=s.layers[i];auto v=[&](const char* id){return get(lid(i,id));};l.level=v("level");l.pan=v("pan");l.size=v("size");l.density=v("density");l.position=v("position");l.scatter=v("scatter");l.pitch=v("pitch");l.drift=v("drift");l.spread=v("spread");l.motion=v("motion");l.cutoff=v("cutoff");l.cutoff2=v("cutoff2");l.resonance=v("resonance");l.resonance2=v("resonance2");l.filterMode=int(v("filterMode"));l.filterMode2=int(v("filterMode2"));l.filterRouting=int(v("filterRouting"));l.source=int(v("source"));l.direction=int(v("direction"));l.shape=int(v("shape"));l.enabled=v("enabled")>.5f;}
+void processBlock(AudioBuffer<float>& b,MidiBuffer& midi)override{ScopedNoDenormals nd;b.clear();if(b.getNumChannels()<2)return;eg::Settings s;for(int i=0;i<4;++i){auto& l=s.layers[i];auto v=[&](const char* id){return get(lid(i,id));};l.level=v("level");l.pan=v("pan");l.size=v("size");l.density=v("density");l.position=v("position");l.scatter=v("scatter");l.pitch=v("pitch");l.drift=v("drift");l.spread=v("spread");l.motion=v("motion");l.cutoff=v("cutoff");l.cutoff2=v("cutoff2");l.resonance=v("resonance");l.resonance2=v("resonance2");l.filterMode=int(v("filterMode"));l.filterMode2=int(v("filterMode2"));l.filterRouting=int(v("filterRouting"));l.source=int(v("source"));l.direction=int(v("direction"));l.shape=int(v("shape"));l.enabled=v("enabled")>.5f;l.sampleMode=v("sampleMode")>.5f;l.root=int(v("root"));l.start=v("start");l.end=v("end");l.fadeIn=v("fadeIn");l.fadeOut=v("fadeOut");l.normalize=v("normalize")>.5f;}
 #define READ(x) s.x=get(#x)
 READ(osc1);READ(osc2);READ(oscPitch1);READ(oscPitch2);READ(fm);READ(ring);READ(attack);READ(release);READ(master);READ(velocity);READ(lfoRate);READ(lfoDepth);READ(xyX);READ(xyY);READ(xyPos);READ(xyDensity);READ(drive);
 #undef READ
@@ -34,7 +36,29 @@ void readMod(eg::ModSettings& m){
  for(int i=0;i<8;++i){m.lfos[i]={getp("lfo",i,"rate"),getp("lfo",i,"phase"),int(getp("lfo",i,"shape")),int(getp("lfo",i,"sync"))};m.envs[i]={getp("env",i,"attack"),getp("env",i,"decay"),getp("env",i,"sustain"),getp("env",i,"release")};}
  for(int i=0;i<4;++i){auto& s=m.steps[i];s.rate=getp("step",i,"rate");s.glide=getp("step",i,"glide");s.length=int(getp("step",i,"length"));s.sync=int(getp("step",i,"sync"));for(int k=0;k<64;++k)s.values[k]=get(sid(i,k));m.functions[i]={getp("function",i,"rate"),getp("function",i,"curve"),int(getp("function",i,"shape")),int(getp("function",i,"loop"))};}
  }
- void getStateInformation(MemoryBlock& b)override{if(auto x=state.copyState().createXml())copyXmlToBinary(*x,b);}void setStateInformation(const void* d,int n)override{if(auto x=getXmlFromBinary(d,n))if(x->hasTagName(state.state.getType()))state.replaceState(ValueTree::fromXml(*x));}
+ String loadSample(int layer,const File& f,bool select=true){
+  if(layer<0||layer>=4)return "Invalid layer";
+  if(!f.existsAsFile()||!f.hasFileExtension("wav;wave;aif;aiff;aifc;flac"))return "WAV, AIFF or FLAC file required";
+  AudioFormatManager formats;formats.registerBasicFormats();std::unique_ptr<AudioFormatReader> reader(formats.createReaderFor(f));
+  if(!reader)return "Unreadable audio file";
+  if(reader->numChannels<1||reader->numChannels>2||reader->sampleRate<8000||reader->sampleRate>192000||reader->lengthInSamples<2||reader->lengthInSamples>reader->sampleRate*30.0)return "Mono/stereo, 8-192 kHz, 30 seconds maximum";
+  int n=int(reader->lengthInSamples);AudioBuffer<float> buf(int(reader->numChannels),n);
+  if(!reader->read(&buf,0,n,0,true,true))return "Audio decoding failed";
+  auto s=std::make_unique<eg::SampleData>();s->rate=reader->sampleRate;s->name=f.getFileName().toStdString();s->path=f.getFullPathName().toStdString();s->left.resize(size_t(n));s->right.resize(size_t(n));s->peak=0;
+  const float* l=buf.getReadPointer(0);const float* r=buf.getReadPointer(reader->numChannels==2?1:0);
+  for(int i=0;i<n;++i){s->left[size_t(i)]=std::isfinite(l[i])?jlimit(-4.f,4.f,l[i]):0.f;s->right[size_t(i)]=std::isfinite(r[i])?jlimit(-4.f,4.f,r[i]):0.f;s->peak=jmax(s->peak,std::abs(s->left[size_t(i)]),std::abs(s->right[size_t(i)]));}
+  if(!engine->samples.publish(layer,std::move(s)))return "Sample memory limit reached (128 MiB per instance)";
+  state.state.setProperty(lid(layer,"samplePath"),f.getFullPathName(),nullptr);
+  if(select){set(lid(layer,"sampleMode"),1);set(lid(layer,"enabled"),1);set(lid(layer,"start"),0);set(lid(layer,"end"),1);set(lid(layer,"root"),60);set(lid(layer,"fadeIn"),0);set(lid(layer,"fadeOut"),0);set(lid(layer,"normalize"),0);}
+  return {};
+ }
+ void getStateInformation(MemoryBlock& b)override{if(auto x=state.copyState().createXml())copyXmlToBinary(*x,b);}
+ void setStateInformation(const void* d,int n)override{
+  if(auto x=getXmlFromBinary(d,n))if(x->hasTagName(state.state.getType())){
+   state.replaceState(ValueTree::fromXml(*x));
+   for(int j=0;j<4;++j){auto path=state.state.getProperty(lid(j,"samplePath")).toString();auto* old=engine->samples.get(j);if(old&&String::fromUTF8(old->path.c_str())==path)continue;engine->samples.clear(j);if(path.isNotEmpty())loadSample(j,File(path),false);}
+  }
+ }
 };
 
 static String tr(bool fr,const char* a,const char* b){return String::fromUTF8(fr?a:b);}
@@ -81,21 +105,24 @@ public:
  }
  void resized()override{auto r=getLocalBounds();label.setBounds(r.removeFromTop(20));slider.setBounds(r);}
 };
-class ReferenceSurface:public Component,private Timer {
+class ReferenceSurface:public Component,public FileDragAndDropTarget,private Timer {
 public:
  explicit ReferenceSurface(Processor& p):proc(p){
   setLookAndFeel(&look);setSize(1500,1000);setOpaque(true);
   for(int i=0;i<8;++i){auto& b=tabs[i];b.getProperties().set("tab",true);b.onClick=[this,i]{page=i;rebuild();};addAndMakeVisible(b);}
   for(int i=0;i<4;++i){auto& b=layers[i];b.onClick=[this,i]{layer=i;rebuild();};addAndMakeVisible(b);}
   language.setButtonText("FR / EN");language.onClick=[this]{fr=!fr;rebuild();};addAndMakeVisible(language);
-  sound.addItem(tr(fr,"Son personnalisé","Custom sound"),1);for(int i=0;i<8;++i)sound.addItem(presetNames()[i],i+2);sound.setSelectedId(1,dontSendNotification);sound.onChange=[this]{int n=sound.getSelectedId()-2;if(n>=0)loadPreset(n);};addAndMakeVisible(sound);
-  previous.setButtonText("<");next.setButtonText(">");previous.onClick=[this]{loadPreset((current+7)%8);};next.onClick=[this]{loadPreset((current+1)%8);};addAndMakeVisible(previous);addAndMakeVisible(next);
+  sound.addItem(tr(fr,"Son personnalisé","Custom sound"),1);for(int i=0;i<eg::factoryCount;++i)sound.addItem(eg::factory[i].name,i+2);sound.setSelectedId(1,dontSendNotification);sound.onChange=[this]{int n=sound.getSelectedId()-2;if(n>=0)loadPreset(n);};addAndMakeVisible(sound);
+  previous.setButtonText("<");next.setButtonText(">");previous.onClick=[this]{loadPreset(current<=0?eg::factoryCount-1:current-1);};next.onClick=[this]{loadPreset((current+1)%eg::factoryCount);};addAndMakeVisible(previous);addAndMakeVisible(next);
   for(int i=0;i<8;++i){macros[i]=std::make_unique<Knob>(proc,"macro"+String(i),macroNames[i]);addAndMakeVisible(*macros[i]);if(i==6)macros[i]->slider.setTooltip("Space: global effects wet/dry");}
   master=std::make_unique<Knob>(proc,"master","Master");addAndMakeVisible(*master);
-  for(int i=0;i<8;++i)favorites[i]=bool(proc.state.state.getProperty("favorite"+String(i),false));
+  for(int i=0;i<eg::factoryCount;++i)favorites[i]=bool(proc.state.state.getProperty("factoryFav_"+String(i),false));
   rebuild();startTimerHz(20);
  }
- ~ReferenceSurface()override{stopTimer();clearPage();setLookAndFeel(nullptr);}
+ ~ReferenceSurface()override{stopTimer();chooser.reset();clearPage();setLookAndFeel(nullptr);}
+ bool isInterestedInFileDrag(const StringArray& files)override{return (page==0||page==1)&&files.size()==1&&File(files[0]).hasFileExtension("wav;wave;aif;aiff;aifc;flac");}
+ void filesDropped(const StringArray& files,int,int)override{if(isInterestedInFileDrag(files))importSample(File(files[0]),layer);}
+
  void resized()override{
   for(int i=0;i<8;++i)tabs[i].setBounds(26+i*180,118,180,60);
   for(int i=0;i<4;++i)layers[i].setBounds(26+i*91,page==4?263:198,84,41);
@@ -120,7 +147,7 @@ public:
   g.setColour(gold.withAlpha(.65f));g.drawHorizontalLine(818,0,1500);g.setColour(Colour(0xff545b48));g.drawVerticalLine(1296,835,957);
   text(g,"PERFORMANCE",26,862,120,17,11,muted,true);text(g,"M A C R O S",26,880,130,28,19,champ,true);text(g,tr(fr,"Contrôles directs","Direct controls"),26,918,125,15,10,muted,false);
   g.setColour(Colour(0xff141a16));g.fillRect(0,971,1500,29);g.setColour(Colour(0xff4e5647));g.drawHorizontalLine(971,0,1500);
-  text(g,tr(fr,"SOURCES INTERNES  /  MIDI POLYPHONIQUE  /  V0.2.2","BUILT-IN SOURCES  /  MIDI POLYPHONIC  /  V0.2.2"),26,978,700,15,10,muted,true);
+  text(g,tr(fr,"SOURCES INTERNES ET SAMPLES  /  MIDI POLYPHONIQUE  /  V0.3","BUILT-IN AND USER SAMPLES  /  MIDI POLYPHONIC  /  V0.3"),26,978,700,15,10,muted,true);
   text(g,"SHAPE SOUND BEYOND REALITY.",1110,978,365,15,10,muted,true,Justification::centredRight);
   for(auto pt:{Point<float>(9,9),Point<float>(1490,9),Point<float>(9,990),Point<float>(1490,990)}){g.setColour(Colour(0xff62675b));g.drawEllipse(pt.x-3,pt.y-3,6,6,1);g.drawLine(pt.x-1.5f,pt.y+1.5f,pt.x+1.5f,pt.y-1.5f,1);}
  }
@@ -132,16 +159,19 @@ public:
   if(page==4&&!rackPage)for(int i=0;i<2;++i){auto r=filterRect(i);if(r.contains(p))proc.set(lid(layer,i?"cutoff2":"cutoff"),20.f*std::pow(1000.f,jlimit(0.f,1.f,(p.x-r.getX())/r.getWidth())));}
  }
 private:
- Processor& proc;ReferenceLook look;bool fr=true;int page=0,layer=0,current=-1,zoom=1,category=0;bool rackPage=false;int modPage=0,modBank=0,modUnit=0,stepBank=0;std::array<bool,8> favorites{};
+ Processor& proc;ReferenceLook look;bool fr=true;int page=0,layer=0,current=-1,zoom=1,category=0;bool rackPage=false;int modPage=0,modBank=0,modUnit=0,stepBank=0;std::array<bool,eg::factoryCount> favorites{};int browserPage=0,matchCount=0;std::unique_ptr<FileChooser> chooser;String sampleStatus;TextButton* pageLabel=nullptr;std::array<TextButton*,13> categoryButtons{};
  std::array<TextButton,8> tabs;std::array<TextButton,4> layers;TextButton language,previous,next;ComboBox sound;
  std::array<std::unique_ptr<Knob>,8> macros;std::unique_ptr<Knob> master;
  std::vector<std::unique_ptr<Component>> controls;std::vector<std::unique_ptr<AudioProcessorValueTreeState::ComboBoxAttachment>> combos;std::vector<std::unique_ptr<AudioProcessorValueTreeState::ButtonAttachment>> switches;
  std::array<TextButton*,8> rows{},stars{};std::array<int,8> rowIds{};TextEditor* search=nullptr;TextButton* active=nullptr;std::unique_ptr<AudioProcessorValueTreeState::SliderAttachment> driveAttachment;std::array<Knob*,12> fxAmountControls{},fxMixControls{};std::array<TextButton*,12> fxOnControls{};std::array<Knob*,2> filterQ{};
  std::array<float,64> spectrum{};
- static const char* const* presetNames(){static const char* n[]={"Init","Golden Atmosphere","Frozen Memories","Infinite Horizon","Quantum Dust","Velvet Clouds","Liquid Time","Metallic Dreams"};return n;}
  static const char* const* sources(){static const char* n[]={"Velvet","Silk","Glass","Amber","Mist","Crystal","Dust","Metal"};return n;}
- int presetCategory(int n)const{return n==0?0:n<4?1:n==5?1:n==4||n==7?2:3;}
- String catName(int n)const{switch(n){case 1:return tr(fr,"Pads atmosphériques","Atmospheric Pads");case 2:return tr(fr,"Textures expérimentales","Experimental Textures");case 3:return tr(fr,"Paysages sonores","Soundscapes");default:return "Init";}}
+ int presetCategory(int n)const{return eg::factory[n].category;}
+ String catName(int n)const{const char* f[]={"Init","Pads atmosphériques","Textures cinématiques","Leads granulaires","Basses expérimentales","Grains rythmiques","Paysages ambiants","Instruments organiques","Glitch et expérimental","Textures vocales","FX et transitions"};const char* e[]={"Init","Atmospheric Pads","Cinematic Textures","Granular Leads","Experimental Basses","Rhythmic Grains","Ambient Soundscapes","Organic Instruments","Glitch & Experimental","Vocal Textures","Sound FX & Transitions"};return tr(fr,f[jlimit(0,10,n)],e[jlimit(0,10,n)]);}
+ bool personal()const{return proc.get(lid(layer,"sampleMode"))>.5f;}
+ void importSample(const File& f,int target){auto error=proc.loadSample(target,f);sampleStatus=error.isEmpty()?tr(fr,"Sample chargé","Sample loaded"):tr(fr,"Import impossible : ","Import failed: ")+error;if(target==layer)rebuild();else repaint();}
+ void chooseSample(){if(chooser)return;int target=layer;chooser=std::make_unique<FileChooser>(tr(fr,"Importer un sample","Import sample"),File{},"*.wav;*.wave;*.aif;*.aiff;*.aifc;*.flac");Component::SafePointer<ReferenceSurface> safe(this);chooser->launchAsync(FileBrowserComponent::openMode|FileBrowserComponent::canSelectFiles,[safe,target](const FileChooser& c){if(safe!=nullptr){auto f=c.getResult();MessageManager::callAsync([safe,target,f]{if(safe!=nullptr){safe->chooser.reset();if(f.existsAsFile())safe->importSample(f,target);}});}});}
+ void sampleToggle(String id,String label,Rectangle<int> r){auto p=std::make_unique<TextButton>(label);p->setClickingTogglesState(true);auto* raw=addControl(std::move(p),r);switches.push_back(std::make_unique<AudioProcessorValueTreeState::ButtonAttachment>(proc.state,lid(layer,id.toRawUTF8()),*raw));}
  static void text(Graphics& g,String s,int x,int y,int w,int h,float font,Colour c,bool bold=false,Justification j=Justification::centredLeft){g.setColour(c);g.setFont(FontOptions(font,bold?Font::bold:Font::plain));g.drawFittedText(s,x,y,w,h,j,1,.75f);}
  void panelBox(Graphics& g,Rectangle<float> r){g.setGradientFill(ColourGradient(Colour(0xff282d28),r.getX(),r.getY(),Colour(0xff202622),r.getRight(),r.getBottom(),false));g.fillRoundedRectangle(r,5);g.setColour(Colour(0xff424b3e));g.drawRoundedRectangle(r,5,1.5f);}
  void panelTitle(Graphics& g,int x,int y,int w,String kicker,String name){text(g,kicker,x,y,w,16,11,muted,true);text(g,name,x,y+20,w,26,19,ink,true);}
@@ -157,13 +187,16 @@ private:
  std::pair<float,float> waveRange()const{float span=1.f/zoom;float pos=proc.get(lid(layer,"position"));return {jlimit(0.f,1.f-span,pos-span*.5f),span};}
  void wave(Graphics& g){
   auto r=waveRect();auto top=r.withY(r.getY()-43).withHeight(43);auto base=r.withY(r.getBottom()).withHeight(29);
-  panelBox(g,top.getUnion(r).getUnion(base));int source=jlimit(0,7,int(proc.get(lid(layer,"source"))));
-  text(g,sources()[source],int(top.getX())+16,int(top.getY())+7,140,28,17,champ,true);text(g,tr(fr,"SOURCE INTERNE / COUCHE ","BUILT-IN SOURCE / LAYER ")+String::charToString(juce_wchar('A'+layer)),int(top.getX())+155,int(top.getY())+10,500,24,11,muted,true);
+  panelBox(g,top.getUnion(r).getUnion(base));int source=jlimit(0,7,int(proc.get(lid(layer,"source"))));bool user=personal();const auto* imported=user?proc.engine->samples.get(layer):nullptr;double duration=imported?double(imported->frames())/imported->rate:1.0;
+  text(g,user?(imported?String::fromUTF8(imported->name.c_str()):tr(fr,"Sample manquant","Missing sample")):String(sources()[source]),int(top.getX())+16,int(top.getY())+7,490,28,17,champ,true);text(g,(user?tr(fr,"SAMPLE PERSONNEL / COUCHE ","USER SAMPLE / LAYER "):tr(fr,"SOURCE INTERNE / COUCHE ","BUILT-IN SOURCE / LAYER "))+String::charToString(juce_wchar('A'+layer)),int(top.getX())+520,int(top.getY())+10,300,24,11,muted,true);
   g.setColour(Colour(0xff1b211d));g.fillRect(r);
-  auto range=waveRange();for(int i=0;i<=16;++i){float x=r.getX()+i*r.getWidth()/16;g.setColour(Colour(0xff333d32));g.drawVerticalLine(int(x),r.getY(),r.getBottom());if(i%4==0&&i<16)text(g,String(range.first+range.second*i/16,3)+" s",int(x)+6,int(r.getY())+5,90,16,12,muted);}
+  auto range=waveRange();for(int i=0;i<=16;++i){float x=r.getX()+i*r.getWidth()/16;g.setColour(Colour(0xff333d32));g.drawVerticalLine(int(x),r.getY(),r.getBottom());if(i%4==0&&i<16)text(g,String((range.first+range.second*i/16)*duration,3)+" s",int(x)+6,int(r.getY())+5,90,16,12,muted);}
   g.setColour(Colour(0xff343b32));g.drawHorizontalLine(int(r.getCentreY()),r.getX(),r.getRight());
-  auto& src=proc.engine->sources[source];Path path;int count=int(r.getWidth());for(int i=0;i<count;++i){float t=range.first+range.second*float(i)/float(count-1);int idx=jlimit(0,int(src.size())-1,int(t*float(src.size()-1)));float y=r.getCentreY()-src[size_t(idx)]*r.getHeight()*.42f;if(i==0)path.startNewSubPath(r.getX(),y);else path.lineTo(r.getX()+i,y);}
-  g.setColour(champ.withAlpha(.86f));g.strokePath(path,PathStrokeType(1.15f));
+  auto& src=proc.engine->sources[source];int count=int(r.getWidth());g.setColour(champ.withAlpha(.86f));
+  if(!user||imported){size_t frames=imported?imported->frames():src.size();auto val=[&](size_t k){return imported?(std::abs(imported->left[k])>=std::abs(imported->right[k])?imported->left[k]:imported->right[k]):src[k];};
+   for(int i=0;i<count;++i){float t0=range.first+range.second*float(i)/count,t1=range.first+range.second*float(i+1)/count;size_t begin=std::min(frames-1,size_t(t0*frames)),end=std::min(frames,std::max(begin+1,size_t(t1*frames)));float lo=0,hi=0;size_t step=std::max<size_t>(1,(end-begin)/64);for(size_t k=begin;k<end;k+=step){float x=val(k);lo=std::min(lo,x);hi=std::max(hi,x);}g.drawVerticalLine(int(r.getX())+i,r.getCentreY()-jlimit(-1.f,1.f,hi)*r.getHeight()*.42f,r.getCentreY()-jlimit(-1.f,1.f,lo)*r.getHeight()*.42f);}
+  }
+  if(imported){float st=proc.get(lid(layer,"start")),en=proc.get(lid(layer,"end"));g.setColour(champ.withAlpha(.6f));for(float v:{st,en}){float x=r.getX()+r.getWidth()*(v-range.first)/range.second;if(x>=r.getX()&&x<=r.getRight())g.drawVerticalLine(int(x),r.getY(),r.getBottom());}}
   float px=r.getX()+r.getWidth()*(proc.get(lid(layer,"position"))-range.first)/range.second;if(px>=r.getX()&&px<=r.getRight()){g.setColour(champ);g.drawVerticalLine(int(px),r.getY(),r.getBottom());Path tri;tri.addTriangle(px-6,r.getY(),px+6,r.getY(),px,r.getY()+8);g.fillPath(tri);}
   g.setColour(Colour(0xff273023));g.fillRect(base);text(g,tr(fr,"POSITION ","POSITION ")+String(proc.get(lid(layer,"position"))*100,1)+" %",int(base.getX())+16,int(base.getY())+4,320,20,11,muted,true);text(g,tr(fr,"GLISSER POUR DÉPLACER","DRAG TO SCAN"),int(base.getRight())-255,int(base.getY())+4,240,20,11,muted,true,Justification::centredRight);
  }
@@ -176,7 +209,7 @@ private:
   panelBox(g,{26,623,1441,163});panelTitle(g,46,632,470,tr(fr,"TEMPS / HAUTEUR / ESPACE","TIME / PITCH / SPACE"),tr(fr,"Architecture des grains","Grain architecture"));
  }
  void paintLab(Graphics& g){
-  wave(g);panelBox(g,{26,568,700,228});panelTitle(g,47,583,660,"SOURCE LAB",tr(fr,"Région et préparation","Region & preparation"));note(g,tr(fr,"Sources internes uniquement dans cette version","Built-in sources only in this version"),48,634,650);
+  wave(g);panelBox(g,{26,568,700,228});panelTitle(g,47,583,660,"SOURCE LAB",tr(fr,"Région et préparation","Region & preparation"));note(g,sampleStatus.isNotEmpty()?sampleStatus:tr(fr,"WAV / AIFF / FLAC : glisser ou importer (30 s max.)","WAV / AIFF / FLAC: drag or import (30 s max.)"),48,634,650);
   panelBox(g,{747,568,720,228});panelTitle(g,768,583,670,tr(fr,"VARIATION PAR GRAIN","PER-GRAIN VARIATION"),tr(fr,"Variation des grains","Grain variation"));
  }
  void paintSynth(Graphics& g){
@@ -249,10 +282,10 @@ private:
   panelBox(g,{26,660,1441,136});panelTitle(g,47,675,1370,tr(fr,"CONTRÔLES FIXES","FIXED ASSIGNMENTS"),tr(fr,"Macros de performance","Performance macros"));note(g,tr(fr,"Les huit macros sont actives. Space règle la proportion globale des effets.","All eight macros are active. Space controls global effects wet/dry."),47,735,1370);
  }
  void paintBrowser(Graphics& g){
-  panelBox(g,{26,198,295,600});panelTitle(g,47,214,253,"LIBERTY SOUND LIBRARY",tr(fr,"Trouvez votre équilibre.","Find your equilibrium."));note(g,tr(fr,"8 sons de cette version","8 sounds in this version"),47,741,252);
+  panelBox(g,{26,198,295,600});panelTitle(g,47,214,253,"LIBERTY SOUND LIBRARY",tr(fr,"Trouvez votre équilibre.","Find your equilibrium."));note(g,tr(fr,"100 sons + Init","100 sounds + Init"),47,761,252);
   g.setColour(Colour(0xff303b2c));g.fillRect(342,251,1125,37);text(g,tr(fr,"NOM DU SON","SOUND NAME"),360,257,500,24,11,muted,true);text(g,tr(fr,"CATÉGORIE","CATEGORY"),1003,257,260,24,11,muted,true);text(g,tr(fr,"FAVORI","FAVORITE"),1380,257,72,24,11,muted,true);
-  for(int i=0;i<8;++i){int n=rowIds[i];if(n<0)continue;auto y=289+i*56;g.setColour(i%2?Colour(0xff222b22):Colour(0xff1c251e));g.fillRect(342,y,1125,54);text(g,catName(presetCategory(n)),1003,y+10,310,32,14,muted);}
-  note(g,tr(fr,"Banque d'usine protégée. Les presets utilisateur ne sont pas encore disponibles.","Factory sounds protected. User presets are not implemented yet."),344,773,1120);
+  for(int i=0;i<8;++i){int n=rowIds[i];if(n<0)continue;auto y=289+i*56;g.setColour(i%2?Colour(0xff222b22):Colour(0xff1c251e));g.fillRect(342,y,1125,54);text(g,catName(presetCategory(n)),1003,y+3,355,25,14,muted);text(g,eg::factory[n].tag,1003,y+28,355,21,11,muted);}
+  note(g,tr(fr,"Banque d’usine protégée / 100 sons originaux","Protected factory library / 100 original sounds"),344,773,650);
  }
  template<class T> T* addControl(std::unique_ptr<T> p,Rectangle<int> bounds){auto* raw=p.get();addAndMakeVisible(*raw);raw->setBounds(bounds);controls.push_back(std::move(p));return raw;}
  TextButton* button(String name,Rectangle<int> r,std::function<void()> fn){auto p=std::make_unique<TextButton>(name);p->onClick=std::move(fn);return addControl(std::move(p),r);}
@@ -263,20 +296,20 @@ private:
  void sourceCombo(Rectangle<int> r){StringArray v;for(int i=0;i<8;++i)v.add(sources()[i]);combo("source",v,r);}
  void zoomButtons(){auto r=waveRect();int x=int(r.getRight());button("-",{x-112,267,27,24},[this]{zoom=jmax(1,zoom/2);repaint();});button("+",{x-39,267,27,24},[this]{zoom=jmin(8,zoom*2);repaint();});}
  std::vector<std::unique_ptr<AudioProcessorValueTreeState::SliderAttachment>> modSliders;
- void clearPage(){modSliders.clear();driveAttachment.reset();fxAmountControls.fill(nullptr);fxMixControls.fill(nullptr);fxOnControls.fill(nullptr);filterQ.fill(nullptr);switches.clear();combos.clear();controls.clear();rows.fill(nullptr);stars.fill(nullptr);rowIds.fill(-1);active=nullptr;search=nullptr;}
+ void clearPage(){pageLabel=nullptr;categoryButtons.fill(nullptr);modSliders.clear();driveAttachment.reset();fxAmountControls.fill(nullptr);fxMixControls.fill(nullptr);fxOnControls.fill(nullptr);filterQ.fill(nullptr);switches.clear();combos.clear();controls.clear();rows.fill(nullptr);stars.fill(nullptr);rowIds.fill(-1);active=nullptr;search=nullptr;}
  void rebuild(){
   clearPage();const char* f[]={"MOTEUR GRANULAIRE","SAMPLE LAB","SYNTHÈSE","MODULATION","FILTRES & EFFETS","MOUVEMENT & SÉQUENCEUR","PERFORMANCE","PRESETS"};const char* e[]={"GRANULAR ENGINE","SAMPLE LAB","SYNTHESIS","MODULATION","FILTERS & EFFECTS","MOTION & SEQUENCER","PERFORMANCE","PRESET BROWSER"};
   sound.changeItemText(1,tr(fr,"Son personnalisé","Custom sound"));
   for(int i=0;i<8;++i){tabs[i].setButtonText(String(i+1).paddedLeft('0',2)+"  "+tr(fr,f[i],e[i]));tabs[i].setToggleState(i==page,dontSendNotification);}
   for(int i=0;i<4;++i){layers[i].setVisible(page==0||page==1||page==4&&!rackPage);layers[i].setBounds(26+i*91,page==4?263:198,84,41);layers[i].setButtonText(String::charToString(juce_wchar('A'+i))+"  "+tr(fr,"COUCHE","LAYER"));layers[i].setToggleState(i==layer,dontSendNotification);}
   if(page==0){
-   sourceCombo({43,342,217,35});local("level",50,386,100,111);local("pan",156,386,100,111);
+   sourceCombo({43,342,217,35});sampleToggle("sampleMode",tr(fr,"SAMPLE PERSO","USER SAMPLE"),{43,503,217,34});local("level",50,386,100,111);local("pan",156,386,100,111);
    combo("direction",{tr(fr,"Avant","Forward"),tr(fr,"Arrière","Reverse"),tr(fr,"Aléatoire","Random")},{43,574,217,31});
    combo("shape",{"Hann","Triangle",tr(fr,"Gaussienne","Gaussian")},{1200,562,265,34});
    active=button(tr(fr,"COUCHE ACTIVE","LAYER ACTIVE"),{1290,197,177,44},[this]{proc.set(lid(layer,"enabled"),proc.get(lid(layer,"enabled"))>.5f?0:1);updateActive();});updateActive();
    zoomButtons();const char* ids[]={"size","density","position","scatter","pitch","drift","spread","motion"};for(int i=0;i<8;++i)local(ids[i],67+i*176,671,124,111);
   }
-  if(page==1){zoomButtons();sourceCombo({48,656,655,33});local("position",73,697,145,96);local("size",261,697,145,96);local("level",450,697,145,96);local("scatter",768,642,152,145);local("drift",940,642,152,145);local("spread",1112,642,152,145);local("density",1284,642,152,145);}
+  if(page==1){zoomButtons();button(tr(fr,"IMPORTER","IMPORT"),{1060,198,170,41},[this]{chooseSample();});sampleToggle("sampleMode",tr(fr,"SAMPLE PERSONNEL","USER SAMPLE"),{1240,198,225,41});sourceCombo({48,656,415,33});sampleToggle("normalize",tr(fr,"NORMALISER","NORMALIZE"),{473,656,230,33});const char* ids[]={"start","end","fadeIn","fadeOut","root"};for(int i=0;i<5;++i)local(ids[i],49+i*131,695,124,98);local("scatter",768,642,152,145);local("drift",940,642,152,145);local("spread",1112,642,152,145);local("density",1284,642,152,145);}
   if(page==2){global("osc1",90,372,160,139);global("oscPitch1",390,372,160,139);global("osc2",810,372,160,139);global("oscPitch2",1110,372,160,139);const char* ids[]={"fm","ring","attack","release"};for(int i=0;i<4;++i)global(ids[i],65+i*170,645,140,138);}
   if(page==3)buildMod();
   if(page==4){
@@ -299,17 +332,35 @@ private:
   if(page==5){global("xyPos",830,348,200,175);global("xyDensity",1150,348,200,175);}
   if(page==6){global("velocity",785,278,140,118);global("attack",952,278,140,118);global("release",1119,278,140,118);global("master",1286,278,140,118);}
   if(page==7){
-   const String names[]={tr(fr,"Tous les sons","All sounds"),tr(fr,"Favoris","Favorites"),catName(1),catName(2),catName(3),"Init"};
-   for(int i=0;i<6;++i){auto* b=button(names[i],{47,277+i*47,253,38},[this,i]{category=i;refreshRows();});b->getProperties().set("left",true);}
-   auto e=std::make_unique<TextEditor>();e->setTextToShowWhenEmpty(tr(fr,"Rechercher un nom ou une catégorie...","Search name or category..."),muted);e->onTextChange=[this]{refreshRows();};search=addControl(std::move(e),{342,198,980,42});
-   button(tr(fr,"SON ALÉATOIRE","RANDOM SOUND"),{1334,198,133,42},[this]{loadPreset(Random::getSystemRandom().nextInt(8));});
-   for(int i=0;i<8;++i){rows[i]=button("",{350,290+i*56,620,52},[this,i]{if(rowIds[i]>=0)loadPreset(rowIds[i]);});rows[i]->getProperties().set("left",true);stars[i]=button("",{1384,298+i*56,64,36},[this,i]{int n=rowIds[i];if(n<0)return;favorites[n]=!favorites[n];proc.state.state.setProperty("favorite"+String(n),favorites[n],nullptr);refreshRows();});}
+   for(int i=0;i<13;++i){String name=i==0?tr(fr,"Tous les sons","All sounds"):i==1?tr(fr,"Favoris","Favorites"):catName(i-2);if(i>=2){int count=0;for(int j=0;j<eg::factoryCount;++j)if(presetCategory(j)==i-2)++count;name+="  "+String(count);}auto* b=button(name,{47,266+i*37,253,33},[this,i]{category=i;browserPage=0;refreshRows();});b->getProperties().set("left",true);categoryButtons[i]=b;}
+   auto e=std::make_unique<TextEditor>();e->setTextToShowWhenEmpty(tr(fr,"Rechercher un nom, une catégorie ou un tag...","Search name, category or tag..."),muted);e->onTextChange=[this]{browserPage=0;refreshRows();};search=addControl(std::move(e),{342,198,980,42});
+   button(tr(fr,"SON ALÉATOIRE","RANDOM SOUND"),{1334,198,133,42},[this]{loadPreset(1+Random::getSystemRandom().nextInt(100));});
+   for(int i=0;i<8;++i){rows[i]=button("",{350,290+i*56,620,52},[this,i]{if(rowIds[i]>=0)loadPreset(rowIds[i]);});rows[i]->getProperties().set("left",true);stars[i]=button("",{1384,298+i*56,64,36},[this,i]{int n=rowIds[i];if(n<0)return;favorites[n]=!favorites[n];proc.state.state.setProperty("factoryFav_"+String(n),favorites[n],nullptr);refreshRows();});}
+   button("<",{1080,748,80,37},[this]{browserPage=jmax(0,browserPage-1);refreshRows();});pageLabel=button("",{1170,748,180,37},[]{});pageLabel->setInterceptsMouseClicks(false,false);button(">",{1360,748,95,37},[this]{browserPage=jmin(jmax(0,(matchCount-1)/8),browserPage+1);refreshRows();});
    refreshRows();
   }
   resized();repaint();
  }
- void refreshRows(){if(page!=7||!search)return;auto q=search->getText().trim();rowIds.fill(-1);int r=0;for(int n=0;n<8;++n){bool keep=category==0||(category==1&&favorites[n])||(category>=2&&category<=4&&presetCategory(n)==category-1)||(category==5&&n==0);if(!keep||(!q.isEmpty()&&!String(presetNames()[n]).containsIgnoreCase(q)&&!catName(presetCategory(n)).containsIgnoreCase(q)))continue;rowIds[r++]=n;}for(int i=0;i<8;++i){int n=rowIds[i];rows[i]->setVisible(n>=0);stars[i]->setVisible(n>=0);if(n>=0){rows[i]->setButtonText(presetNames()[n]);rows[i]->setToggleState(n==current,dontSendNotification);stars[i]->setButtonText(favorites[n]?String::fromUTF8("★"):String::fromUTF8("☆"));stars[i]->setToggleState(favorites[n],dontSendNotification);}}repaint();}
- void loadPreset(int i){if(i<0||i>7)return;current=i;for(auto* param:proc.getParameters())param->setValueNotifyingHost(param->getDefaultValue());for(int j=0;j<4;++j){proc.set(lid(j,"enabled"),j==0||(i>4&&j==1)?1:0);proc.set(lid(j,"source"),float((i+j)%8));proc.set(lid(j,"size"),i==0?180.f:45.f+i*95.f);proc.set(lid(j,"density"),i==0?24.f:8.f+i*7.f);proc.set(lid(j,"pitch"),j==0?0.f:12.f);proc.set(lid(j,"cutoff"),9000.f-i*750.f);proc.set(lid(j,"position"),.15f+i*.09f);proc.set(lid(j,"level"),j==0?.65f:.32f);}proc.set("attack",.02f+i*.075f);proc.set("release",.9f+i*.2f);proc.set("lfoDepth",i*.085f);proc.set("osc1",.2f);proc.set("osc2",i*.035f);sound.setSelectedId(i+2,dontSendNotification);updateActive();refreshRows();repaint();}
+ void refreshRows(){if(page!=7||!search)return;auto q=search->getText().trim();std::array<int,eg::factoryCount> matches{};matchCount=0;
+  for(int n=0;n<eg::factoryCount;++n){bool keep=category==0||(category==1&&favorites[n])||(category>=2&&presetCategory(n)==category-2);if(!keep||(!q.isEmpty()&&!String(eg::factory[n].name).containsIgnoreCase(q)&&!catName(presetCategory(n)).containsIgnoreCase(q)&&!String(eg::factory[n].tag).containsIgnoreCase(q)))continue;matches[matchCount++]=n;}
+  browserPage=jlimit(0,jmax(0,(matchCount-1)/8),browserPage);rowIds.fill(-1);
+  for(int i=0;i<8;++i){int idx=browserPage*8+i;int n=idx<matchCount?matches[idx]:-1;rowIds[i]=n;rows[i]->setVisible(n>=0);stars[i]->setVisible(n>=0);if(n>=0){rows[i]->setButtonText(eg::factory[n].name);rows[i]->setToggleState(n==current,dontSendNotification);stars[i]->setButtonText(favorites[n]?String::fromUTF8("★"):String::fromUTF8("☆"));stars[i]->setToggleState(favorites[n],dontSendNotification);}}
+  for(int i=0;i<13;++i)if(categoryButtons[i])categoryButtons[i]->setToggleState(i==category,dontSendNotification);if(pageLabel)pageLabel->setButtonText(String(browserPage+1)+" / "+String(jmax(1,(matchCount+7)/8))+"  ("+String(matchCount)+")");repaint();
+ }
+ void loadPreset(int i){if(i<0||i>=eg::factoryCount)return;current=i;auto p=eg::factorySettings(i);for(auto* param:proc.getParameters())param->setValueNotifyingHost(param->getDefaultValue());for(int j=0;j<4;++j){const auto& l=p.layers[j];auto set=[&](const char* id,float v){proc.set(lid(j,id),v);};
+ #define LP(k) set(#k,float(l.k))
+ LP(level);LP(pan);LP(size);LP(density);LP(position);LP(scatter);LP(pitch);LP(drift);LP(spread);LP(motion);LP(cutoff);LP(cutoff2);LP(resonance);LP(resonance2);LP(filterMode);LP(filterMode2);LP(filterRouting);LP(source);LP(direction);LP(shape);LP(enabled);LP(sampleMode);
+ #undef LP
+ }
+ #define GP(k) proc.set(#k,p.k)
+ GP(osc1);GP(osc2);GP(oscPitch1);GP(oscPitch2);GP(fm);GP(ring);GP(attack);GP(release);GP(master);GP(velocity);GP(lfoRate);GP(lfoDepth);GP(xyX);GP(xyY);GP(xyPos);GP(xyDensity);GP(drive);
+ #undef GP
+ for(int k=0;k<8;++k){proc.set("macro"+String(k),p.macros[k]);auto& l=p.mod.lfos[k];proc.set(mid("lfo",k,"rate"),l.rate);proc.set(mid("lfo",k,"phase"),l.phase);proc.set(mid("lfo",k,"shape"),float(l.shape));proc.set(mid("lfo",k,"sync"),float(l.sync));}
+ for(int k=0;k<12;++k){auto& f=p.effects[k];proc.set(fxid(k,"type"),float(f.type));proc.set(fxid(k,"enabled"),float(f.enabled));proc.set(fxid(k,"amount"),f.amount);proc.set(fxid(k,"mix"),f.mix);}
+ for(int k=0;k<64;++k){auto& r=p.mod.routes[k];proc.set(mid("route",k,"source"),float(r.source));proc.set(mid("route",k,"dest"),float(r.dest));proc.set(mid("route",k,"depth"),r.depth);proc.set(mid("route",k,"curve"),r.curve);}
+ for(int k=0;k<4;++k){auto& s=p.mod.steps[k];proc.set(mid("step",k,"length"),float(s.length));proc.set(mid("step",k,"rate"),s.rate);proc.set(mid("step",k,"glide"),s.glide);proc.set(mid("step",k,"sync"),float(s.sync));for(int n=0;n<64;++n)proc.set(sid(k,n),s.values[n]);auto& f=p.mod.functions[k];proc.set(mid("function",k,"rate"),f.rate);proc.set(mid("function",k,"curve"),f.curve);proc.set(mid("function",k,"shape"),float(f.shape));proc.set(mid("function",k,"loop"),float(f.loop));}
+ sound.setSelectedId(i+2,dontSendNotification);updateActive();refreshRows();repaint();
+ }
  void updateActive(){if(active){bool on=proc.get(lid(layer,"enabled"))>.5f;active->setToggleState(on,dontSendNotification);active->setButtonText(on?tr(fr,"COUCHE ACTIVE","LAYER ACTIVE"):tr(fr,"COUCHE INACTIVE","LAYER INACTIVE"));}}
  void timerCallback()override{updateActive();if(page==4){if(rackPage){for(int i=0;i<12;++i)if(fxAmountControls[i]){int t=int(proc.get(fxid(i,"type")));fxAmountControls[i]->label.setText(fxAmount(t),dontSendNotification);fxAmountControls[i]->setEnabled(t!=0);fxMixControls[i]->setEnabled(t!=0);fxOnControls[i]->setEnabled(t!=0);}}else for(int i=0;i<2;++i)if(filterQ[i]){int m=int(proc.get(lid(layer,i?"filterMode2":"filterMode")));filterQ[i]->setEnabled(m!=0&&m!=7);}}if(page==0||page==2){std::array<float,512> a{};auto head=proc.analysisHead.load(std::memory_order_acquire);for(unsigned n=0;n<512;++n)a[n]=proc.analysis[(head+n)%512].load(std::memory_order_relaxed)*(.5f-.5f*std::cos(2*eg::pi*n/511.f));for(int k=0;k<64;++k){float re=0,im=0;int bin=1+k*4;for(int n=0;n<512;++n){float t=2*eg::pi*bin*n/512.f;re+=a[n]*std::cos(t);im+=a[n]*std::sin(t);}float db=Decibels::gainToDecibels(std::sqrt(re*re+im*im)/128.f,-80.f);spectrum[k]=jmax(jlimit(0.f,1.f,(db+80)/80),spectrum[k]*.8f);}}repaint();}
 };
