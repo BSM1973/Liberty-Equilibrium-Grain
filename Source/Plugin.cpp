@@ -90,7 +90,7 @@ class Processor: public AudioProcessor,private Timer {public:
  void saveExtra(ValueTree& v)const{int flags=snapshotFlags.load();v.setProperty("morphFlags",flags,nullptr);v.setProperty("morphA",flags&1?serializeSnapshot(0):String{},nullptr);v.setProperty("morphB",flags&2?serializeSnapshot(1):String{},nullptr);StringArray items;for(int k=0;k<2048;++k){int i=ccMap[size_t(k)].load();if(i>=0&&i<capacity&&params[size_t(i)])items.add(String(k)+":"+ids[size_t(i)]);}v.setProperty("midiBindings",items.joinIntoString(";"),nullptr);}
  void restoreExtra(){snapshotFlags.store(0);int flags=int(state.state.getProperty("morphFlags",0));if(flags&1)restoreSnapshot(0,state.state.getProperty("morphA").toString());if(flags&2)restoreSnapshot(1,state.state.getProperty("morphB").toString());snapshotFlags.store(flags&3);learnTarget.store(-1);for(auto& a:ccMap)a.store(-1);for(auto& a:pendingCC)a.store(-1);StringArray items;items.addTokens(state.state.getProperty("midiBindings").toString(),";","");for(auto& x:items){int sep=x.indexOfChar(':');if(sep>0){int k=x.substring(0,sep).getIntValue(),i=indexOf(x.substring(sep+1));if(k>=0&&k<2048&&i>=0&&i<capacity)ccMap[size_t(k)].store(i);}}}
 
-AudioProcessorValueTreeState state;std::unique_ptr<eg::Engine> engine;eg::SpectralEngine spectral;eg::NoteSequencer sequencer;eg::MotionClock motion;std::atomic<int> playStep{-1};std::atomic<float> liveX{.5f},liveY{.5f};std::atomic<float> peak{0},peakR{0};std::array<std::atomic<float>,512> analysis{};std::atomic<unsigned> analysisHead{0};float get(String id)const{return state.getRawParameterValue(id)->load();}void set(String id,float x){if(auto* p=state.getParameter(id)){p->beginChangeGesture();p->setValueNotifyingHost(p->convertTo0to1(x));p->endChangeGesture();}}
+AudioProcessorValueTreeState state;std::unique_ptr<eg::Engine> engine;eg::SpectralEngine spectral;eg::NoteSequencer sequencer;eg::MotionClock motion;std::atomic<int> playStep{-1};std::atomic<float> liveX{.5f},liveY{.5f};std::atomic<float> peak{0},peakR{0};std::array<std::atomic<float>,512> analysis{};std::atomic<unsigned> analysisHead{0};float get(String id)const{auto* value=state.getRawParameterValue(id);jassert(value!=nullptr);return value?value->load():0.f;}void set(String id,float x){if(auto* p=state.getParameter(id)){p->beginChangeGesture();p->setValueNotifyingHost(p->convertTo0to1(x));p->endChangeGesture();}}
 const String getName()const override{return "Equilibrium Grain";}bool acceptsMidi()const override{return true;}bool producesMidi()const override{return false;}bool isMidiEffect()const override{return false;}double getTailLengthSeconds()const override{return 12;}int getNumPrograms()override{return 1;}int getCurrentProgram()override{return 0;}void setCurrentProgram(int)override{}const String getProgramName(int)override{return "Init";}void changeProgramName(int,const String&)override{}bool hasEditor()const override{return true;}AudioProcessorEditor* createEditor()override;void prepareToPlay(double r,int)override{engine->prepare(r);spectral.prepare(r);sequencer.prepare(r);motion.reset();playStep.store(-1);lastSeqMode=0;}void releaseResources()override{}bool isBusesLayoutSupported(const BusesLayout& l)const override{return l.getMainOutputChannelSet()==AudioChannelSet::stereo();}
 void processBlock(AudioBuffer<float>& b,MidiBuffer& midi)override{ScopedNoDenormals nd;b.clear();if(b.getNumChannels()<2)return;prepareMapping();eg::Settings s;for(int i=0;i<4;++i){auto& l=s.layers[i];auto v=[&](const char* id){return audioValue(lid(i,id));};l.level=v("level");l.pan=v("pan");l.size=v("size");l.density=v("density");l.position=v("position");l.scatter=v("scatter");l.pitch=v("pitch");l.drift=v("drift");l.spread=v("spread");l.motion=v("motion");l.cutoff=v("cutoff");l.cutoff2=v("cutoff2");l.resonance=v("resonance");l.resonance2=v("resonance2");l.filterMode=int(v("filterMode"));l.filterMode2=int(v("filterMode2"));l.filterRouting=int(v("filterRouting"));l.source=int(v("source"));l.direction=int(v("direction"));l.shape=int(v("shape"));l.enabled=v("enabled")>.5f;l.sampleMode=v("sampleMode")>.5f;l.root=int(v("root"));l.start=v("start");l.end=v("end");l.fadeIn=v("fadeIn");l.fadeOut=v("fadeOut");l.normalize=v("normalize")>.5f;l.loopCrossfade=v("loopCrossfade");}
 #define READ(x) s.x=audioValue(#x)
@@ -263,7 +263,7 @@ public:
   g.setColour(gold.withAlpha(.65f));g.drawHorizontalLine(818,0,1500);g.setColour(Colour(0xff545b48));g.drawVerticalLine(1296,835,957);
   text(g,"PERFORMANCE",26,862,120,17,11,muted,true);text(g,"M A C R O S",26,880,130,28,19,champ,true);text(g,tr(fr,"Contrôles directs","Direct controls"),26,918,125,15,10,muted,false);
   g.setColour(Colour(0xff141a16));g.fillRect(0,971,1500,29);g.setColour(Colour(0xff4e5647));g.drawHorizontalLine(971,0,1500);
-  text(g,tr(fr,"SOURCES INTERNES ET SAMPLES  /  MIDI POLYPHONIQUE  /  V0.9","BUILT-IN AND USER SAMPLES  /  MIDI POLYPHONIC  /  V0.9"),26,978,700,15,10,muted,true);
+  text(g,tr(fr,"SOURCES INTERNES ET SAMPLES  /  MIDI POLYPHONIQUE  /  V0.9.1","BUILT-IN AND USER SAMPLES  /  MIDI POLYPHONIC  /  V0.9.1"),26,978,700,15,10,muted,true);
   text(g,"SHAPE SOUND BEYOND REALITY.",1110,978,365,15,10,muted,true,Justification::centredRight);
   for(auto pt:{Point<float>(9,9),Point<float>(1490,9),Point<float>(9,990),Point<float>(1490,990)}){g.setColour(Colour(0xff62675b));g.drawEllipse(pt.x-3,pt.y-3,6,6,1);g.drawLine(pt.x-1.5f,pt.y+1.5f,pt.x+1.5f,pt.y-1.5f,1);}
  }
@@ -280,23 +280,28 @@ public:
  int qcLayout(const File& folder){
   int issues=0;StringArray report;
   auto audit=[&](String name,bool screenshot){
+   Logger::writeToLog("QC layout: "+name);
+   jassert(layer>=0&&layer<4&&page>=0&&page<8);
    rebuild();int overlaps=0,outside=0,bad=0;auto bounds=getLocalBounds();auto inspect=[&](const String& x){if(x.containsChar(juce_wchar(0xfffd))||x.contains(String::fromUTF8("Ã©"))||x.contains(String::fromUTF8("Ã¨")))++bad;};
    for(int i=0;i<getNumChildComponents();++i){auto* a=getChildComponent(i);if(!a->isVisible())continue;auto r=a->getBounds();if(!bounds.contains(r))++outside;
     if(auto* b=dynamic_cast<Button*>(a))inspect(b->getButtonText());if(auto* k=dynamic_cast<Knob*>(a))inspect(k->label.getText());if(auto* b=dynamic_cast<ComboBox*>(a))for(int j=0;j<b->getNumItems();++j)inspect(b->getItemText(j));
     for(int j=i+1;j<getNumChildComponents();++j){auto* b=getChildComponent(j);if(!b->isVisible())continue;auto hit=r.getIntersection(b->getBounds());if(hit.getWidth()>2&&hit.getHeight()>2){++overlaps;report.add(name+" overlap "+a->getBounds().toString()+" / "+b->getBounds().toString());}}
    }
    report.add(name+" overlaps="+String(overlaps)+" outside="+String(outside)+" encoding="+String(bad));issues+=overlaps+outside+bad;
+   folder.getChildFile("ui-layout.txt").replaceWithText(report.joinIntoString("\n"));
    if(screenshot){auto image=createComponentSnapshot(bounds,true,.7f);PNGImageFormat png;auto f=folder.getChildFile(name+".png");auto out=f.createOutputStream();if(out&&out->openedOk())png.writeImageToStream(image,*out);}
   };
-  for(int lang=0;lang<2;++lang){fr=lang==0;proc.french.store(fr);String pre=fr?"FR-":"EN-";for(page=0;page<8;++page){
-   if(page==0||page==1){for(layer=0;layer<4;++layer){labPage=0;audit(pre+String(page+1)+"-region-"+String(layer+1),fr&&layer==0);if(page==1){labPage=1;audit(pre+"2-analysis-"+String(layer+1),fr&&layer==0);}}}
-   else if(page==3){for(modPage=0;modPage<5;++modPage){modUnit=0;modBank=0;stepBank=0;audit(pre+"4-mod-"+String(modPage),fr);}}
-   else if(page==4){for(int n=0;n<3;++n){rackPage=n==1;spectralPage=n==2;audit(pre+"5-fx-"+String(n),fr);}}
-   else if(page==5){for(motionPage=0;motionPage<3;++motionPage){seqBank=0;seqLane=0;audit(pre+"6-motion-"+String(motionPage),fr);}}
-   else if(page==6){for(perfPage=0;perfPage<3;++perfPage)audit(pre+"7-perf-"+String(perfPage),fr);}
+  for(int lang=0;lang<2;++lang){fr=lang==0;proc.french.store(fr);String pre=fr?"FR-":"EN-";for(int pg=0;pg<8;++pg){
+   page=pg;layer=0;modPage=0;motionPage=0;perfPage=0;labPage=0;rackPage=false;spectralPage=false;userBrowser=false;
+   if(page==0||page==1){for(int l=0;l<4;++l){layer=l;labPage=0;audit(pre+String(page+1)+"-region-"+String(layer+1),fr&&layer==0);if(page==1){labPage=1;audit(pre+"2-analysis-"+String(layer+1),fr&&layer==0);}}}
+   else if(page==3){for(int sub=0;sub<5;++sub){modPage=sub;modUnit=0;modBank=0;stepBank=0;audit(pre+"4-mod-"+String(modPage),fr);}}
+   else if(page==4){for(int n=0;n<3;++n){rackPage=n==1;spectralPage=n==2;int numLayers=n==0?4:1;for(int l=0;l<numLayers;++l){layer=l;audit(pre+"5-fx-"+String(n)+"-layer-"+String(l+1),fr&&l==0);}}}
+   else if(page==5){for(int sub=0;sub<3;++sub){motionPage=sub;seqBank=0;seqLane=0;audit(pre+"6-motion-"+String(motionPage),fr);}}
+   else if(page==6){for(int sub=0;sub<3;++sub){perfPage=sub;audit(pre+"7-perf-"+String(perfPage),fr);}}
    else if(page==7){for(int n=0;n<2;++n){userBrowser=n==1;audit(pre+"8-browser-"+String(n),fr);}}
    else audit(pre+String(page+1),fr);
   }}
+  page=0;layer=0;labPage=modPage=motionPage=perfPage=0;rackPage=spectralPage=userBrowser=false;fr=true;proc.french.store(true);rebuild();
   folder.getChildFile("ui-layout.txt").replaceWithText(report.joinIntoString("\n"));return issues;
  }
 #endif
@@ -623,6 +628,7 @@ private:
  std::vector<std::unique_ptr<AudioProcessorValueTreeState::SliderAttachment>> modSliders;
  void clearPage(){userSearch=nullptr;userPageLabel=nullptr;userRows.fill(-1);for(auto& a:hybridKnobs)a.fill(nullptr);hybridSync.fill(nullptr);recordButton=nullptr;seqButtons.fill(nullptr);pageLabel=nullptr;categoryButtons.fill(nullptr);modSliders.clear();driveAttachment.reset();fxAmountControls.fill(nullptr);fxMixControls.fill(nullptr);fxOnControls.fill(nullptr);filterQ.fill(nullptr);switches.clear();combos.clear();controls.clear();rows.fill(nullptr);stars.fill(nullptr);rowIds.fill(-1);active=nullptr;search=nullptr;}
  void rebuild(){
+  page=jlimit(0,7,page);layer=jlimit(0,3,layer);
   proc.engine->monitorHybrid.store(page==2,std::memory_order_relaxed);clearPage();const char* f[]={"MOTEUR GRANULAIRE","SAMPLE LAB","SYNTHÈSE","MODULATION","FILTRES & EFFETS","MOUVEMENT & SÉQUENCEUR","PERFORMANCE","PRESETS"};const char* e[]={"GRANULAR ENGINE","SAMPLE LAB","SYNTHESIS","MODULATION","FILTERS & EFFECTS","MOTION & SEQUENCER","PERFORMANCE","PRESET BROWSER"};
   sound.changeItemText(1,tr(fr,"Son personnalisé","Custom sound"));
   for(int i=0;i<8;++i){tabs[i].setButtonText(String(i+1).paddedLeft('0',2)+"  "+tr(fr,f[i],e[i]));tabs[i].setToggleState(i==page,dontSendNotification);}

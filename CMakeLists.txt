@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(EquilibriumGrain VERSION 0.9.0 LANGUAGES C CXX)
+project(EquilibriumGrain VERSION 0.9.1 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 option(EG_PLUGIN "Build JUCE plugin" ON)
 include(CTest)
