@@ -1,32 +1,22 @@
-name: Build Equilibrium Grain
-on: [push, workflow_dispatch]
+name: Build Equilibrium Grain Windows
+on:
+  push:
+    paths:
+      - 'Source/**'
+      - 'Tests/**'
+      - 'CMakeLists.txt'
+      - '!**/*.md'
+  workflow_dispatch:
 jobs:
   build:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-14, windows-2022]
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
-      - name: Configure macOS
-        if: runner.os == 'macOS'
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64
       - name: Configure Windows
-        if: runner.os == 'Windows'
         run: cmake -S . -B build -A x64
       - run: cmake --build build --config Release --parallel 2
       - run: ctest --test-dir build -C Release --output-on-failure
-      - name: Package macOS
-        if: runner.os == 'macOS'
-        run: |
-          test -d "build/EquilibriumGrain_artefacts/Release/AU/Equilibrium Grain.component"
-          test -d "build/EquilibriumGrain_artefacts/Release/VST3/Equilibrium Grain.vst3"
-          test -d "build/EquilibriumGrain_artefacts/Release/Standalone/Equilibrium Grain.app"
-          mkdir -p dist
-          tar -czf dist/Equilibrium-Grain-macOS-arm64.tar.gz -C build/EquilibriumGrain_artefacts/Release AU VST3 Standalone
       - name: Package Windows
-        if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $root = "build/EquilibriumGrain_artefacts/Release"
@@ -36,6 +26,6 @@ jobs:
           Compress-Archive -Path "$root/VST3","$root/Standalone" -DestinationPath dist/Equilibrium-Grain-Windows-x64.zip
       - uses: actions/upload-artifact@v4
         with:
-          name: Equilibrium-Grain-${{ matrix.os }}
+          name: Equilibrium-Grain-windows-2022
           path: dist/*
           if-no-files-found: error
