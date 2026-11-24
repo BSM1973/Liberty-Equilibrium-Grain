@@ -263,7 +263,7 @@ public:
   g.setColour(gold.withAlpha(.65f));g.drawHorizontalLine(818,0,1500);g.setColour(Colour(0xff545b48));g.drawVerticalLine(1296,835,957);
   text(g,"PERFORMANCE",26,862,120,17,11,muted,true);text(g,"M A C R O S",26,880,130,28,19,champ,true);text(g,tr(fr,"Contrôles directs","Direct controls"),26,918,125,15,10,muted,false);
   g.setColour(Colour(0xff141a16));g.fillRect(0,971,1500,29);g.setColour(Colour(0xff4e5647));g.drawHorizontalLine(971,0,1500);
-  text(g,tr(fr,"SOURCES INTERNES ET SAMPLES  /  MIDI POLYPHONIQUE  /  V0.9.1","BUILT-IN AND USER SAMPLES  /  MIDI POLYPHONIC  /  V0.9.1"),26,978,700,15,10,muted,true);
+  text(g,tr(fr,"SOURCES INTERNES ET SAMPLES  /  MIDI POLYPHONIQUE  /  V1.0 RC1","BUILT-IN AND USER SAMPLES  /  MIDI POLYPHONIC  /  V1.0 RC1"),26,978,700,15,10,muted,true);
   text(g,"SHAPE SOUND BEYOND REALITY.",1110,978,365,15,10,muted,true,Justification::centredRight);
   for(auto pt:{Point<float>(9,9),Point<float>(1490,9),Point<float>(9,990),Point<float>(1490,990)}){g.setColour(Colour(0xff62675b));g.drawEllipse(pt.x-3,pt.y-3,6,6,1);g.drawLine(pt.x-1.5f,pt.y+1.5f,pt.x+1.5f,pt.y-1.5f,1);}
  }

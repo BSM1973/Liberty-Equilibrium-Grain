@@ -1,0 +1,2 @@
+# v1.0.0 RC1 — commercial preparation
+Source based on v0.9.1, both native CI builds passed all 11 tests. No DSP change. Release branch retained separately from main. Commercial candidate only; signing/notarization and installer verification in the existing Liberty Release Center. CPU diagnostic reports, UI screenshots, actual DAW testing and listening remain review gates. Windows installer unsigned. No store publication authorized by preparation alone.

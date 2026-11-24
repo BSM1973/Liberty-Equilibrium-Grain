@@ -1,8 +1,8 @@
-# EQUILIBRIUM GRAIN — Manuel utilisateur v0.9
-Liberty Music Software — version de précommercialisation
+# EQUILIBRIUM GRAIN — Manuel utilisateur v1.0 — RC1
+Liberty Music Software — version candidate à la commercialisation
 
 ## 1. Installation et première utilisation
-Formats prévus : macOS ARM64 AU, VST3 et Standalone ; Windows x64 VST3 et Standalone. Pour cette version de test, utiliser les archives GitHub ; les installateurs signés et la notarisation seront préparés après validation. Placer les plugins dans les dossiers habituels du système et relancer le scan du DAW. Créer une piste instrument, sélectionner Equilibrium Grain, choisir une entrée MIDI et jouer. En standalone, sélectionner son interface audio et son clavier dans les paramètres audio/MIDI. L'interface est redimensionnable et en français par défaut (FR / EN en haut à droite).
+Formats prévus : macOS ARM64 AU, VST3 et Standalone ; Windows x64 VST3 et Standalone. Pour cette version candidate, utiliser les installateurs fournis par Liberty Release Center. Vérifier les rapports de signature et de notarisation pour macOS. L’installateur Windows est non signé Authenticode et peut déclencher SmartScreen. Placer les plugins dans les dossiers habituels du système et relancer le scan du DAW. Créer une piste instrument, sélectionner Equilibrium Grain, choisir une entrée MIDI et jouer. En standalone, sélectionner son interface audio et son clavier dans les paramètres audio/MIDI. L'interface est redimensionnable et en français par défaut (FR / EN en haut à droite).
 ## 2. Moteur granulaire
 Quatre couches A–D, 16 voix maximum, 16 grains maximum par voix et couche. Sélectionner une couche, activer COUCHE ACTIVE, choisir une source intégrée ou SAMPLE PERSO. Taille règle la durée du grain, Densité sa fréquence d'apparition, Position le point de lecture, Dispersion sa variation, Hauteur la transposition, Dérive l'instabilité de hauteur, Largeur l'étalement stéréo et Mouvement le déplacement de lecture. Choisir la direction et l'enveloppe du grain. Les macros agissent sur l'ensemble du son.
 ## 3. Sample Lab
