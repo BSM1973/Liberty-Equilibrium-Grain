@@ -9,12 +9,12 @@ using namespace juce;
 namespace {
 const Colour bg(0xff151719),panel(0xff25282b),gold(0xffc5a64a),champ(0xffd4bc76),ink(0xffe8e8e5),muted(0xff989c9f);
 struct Spec {const char* id;const char* fr;const char* en;float lo,hi,def,step;};
-const Spec layerSpecs[]={{"level","Niveau","Level",0,1,.65,.01},{"pan","Panoramique","Pan",-1,1,0,.01},{"size","Taille","Size",1,2000,180,1},{"density","Densité","Density",1,160,24,1},{"position","Position","Position",0,1,.35,.01},{"scatter","Dispersion","Scatter",0,1,.05,.01},{"pitch","Hauteur","Pitch",-36,36,0,1},{"drift","Dérive","Pitch drift",0,12,0,.01},{"spread","Largeur","Spread",0,1,.4,.01},{"motion","Mouvement","Movement",0,1,.04,.01},{"cutoff","Fréquence","Cutoff",20,20000,9000,1},{"cutoff2","Fréquence","Cutoff",20,20000,18000,1},{"resonance","Résonance","Resonance",.5,12,.707,.001},{"resonance2","Résonance","Resonance",.5,12,.707,.001},{"filterMode","Mode filtre 1","Filter 1 mode",0,7,7,1},{"filterMode2","Mode filtre 2","Filter 2 mode",0,7,0,1},{"filterRouting","Routage","Routing",0,1,0,1},{"source","Source","Source",0,7,0,1},{"direction","Direction","Direction",0,2,0,1},{"shape","Enveloppe","Envelope",0,2,0,1},{"enabled","Active","Enabled",0,1,1,1},{"sampleMode","Sample personnel","User sample",0,1,0,1},{"root","Note fondamentale","Root note",0,127,60,1},{"start","Début","Start",0,1,0,.001f},{"end","Fin","End",0,1,1,.001f},{"fadeIn","Fondu entrée","Fade in",0,.5f,0,.001f},{"fadeOut","Fondu sortie","Fade out",0,.5f,0,.001f},{"normalize","Normaliser","Normalize",0,1,0,1}};
+const Spec layerSpecs[]={{"level","Niveau","Level",0,1,.65,.01},{"pan","Panoramique","Pan",-1,1,0,.01},{"size","Taille","Size",1,2000,180,1},{"density","Densité","Density",1,160,24,1},{"position","Position","Position",0,1,.35,.01},{"scatter","Dispersion","Scatter",0,1,.05,.01},{"pitch","Hauteur","Pitch",-36,36,0,1},{"drift","Dérive","Pitch drift",0,12,0,.01},{"spread","Largeur","Spread",0,1,.4,.01},{"motion","Mouvement","Movement",0,1,.04,.01},{"cutoff","Fréquence","Cutoff",20,20000,9000,1},{"cutoff2","Fréquence","Cutoff",20,20000,18000,1},{"resonance","Résonance","Resonance",.5,12,.707,.001},{"resonance2","Résonance","Resonance",.5,12,.707,.001},{"filterMode","Mode filtre 1","Filter 1 mode",0,7,7,1},{"filterMode2","Mode filtre 2","Filter 2 mode",0,7,0,1},{"filterRouting","Routage","Routing",0,1,0,1},{"source","Source","Source",0,7,0,1},{"direction","Direction","Direction",0,2,0,1},{"shape","Enveloppe","Envelope",0,2,0,1},{"enabled","Active","Enabled",0,1,1,1},{"sampleMode","Sample personnel","User sample",0,1,0,1},{"root","Note fondamentale","Root note",0,127,60,1},{"start","Début","Start",0,1,0,.001f},{"end","Fin","End",0,1,1,.001f},{"fadeIn","Fondu entrée","Fade in",0,.5f,0,.001f},{"fadeOut","Fondu sortie","Fade out",0,.5f,0,.001f},{"normalize","Normaliser","Normalize",0,1,0,1},{"loopCrossfade","Crossfade boucle","Loop crossfade",0,100,0,.1f},{"stretchFactor","Étirement","Stretch",.5f,2,1,.01f},{"shiftAmount","Transposition","Pitch shift",-12,12,0,.1f}};
 const Spec globalSpecs[]={{"osc1","Niveau OSC 1","OSC 1 level",0,1,.2,.01},{"osc2","Niveau OSC 2","OSC 2 level",0,1,0,.01},{"oscPitch1","Hauteur OSC 1","OSC 1 pitch",-24,24,0,1},{"oscPitch2","Hauteur OSC 2","OSC 2 pitch",-24,24,0,1},{"fm","FM","FM",0,8,0,.01},{"ring","Anneau","Ring",0,1,0,.01},{"attack","Attaque","Attack",.001,3,.02,.001},{"release","Relâchement","Release",.01,5,.9,.01},{"master","Sortie master","Master output",-36,0,-8,.1},{"velocity","Vélocité","Velocity",0,1,.7,.01},{"lfoRate","Vitesse LFO","LFO rate",.01,20,.2,.01},{"lfoDepth","Profondeur LFO","LFO depth",0,1,0,.01},{"xyX","Position X","Position X",0,1,.5,.01},{"xyY","Densité Y","Density Y",0,1,.5,.01},{"xyPos","Quantité position","Position amount",0,1,0,.01},{"xyDensity","Quantité densité","Density amount",0,1,0,.01},{"drive","Saturation","Drive",0,1,0,.01},{"spectralMode","Mode spectral","Spectral mode",0,4,0,1},{"spectralMix","Mix spectral","Spectral mix",0,1,.65f,.01f},{"spectralFreeze","Intensité Freeze","Freeze amount",0,1,1,.01f},{"spectralBlur","Diffusion","Blur",0,1,.45f,.01f},{"spectralStretch","Étirement","Stretch",1,8,2,.01f},{"spectralMorph","Morphing A / B","Morphing A / B",0,1,.5f,.01f},
 {"seqMode","Mode de jeu","Play mode",0,2,0,1},{"seqLength","Nombre de pas","Steps",1,64,16,1},{"seqDivision","Division","Division",0,5,2,1},{"seqSync","Sync tempo","Tempo sync",0,1,1,1},{"seqBpm","Tempo interne","Internal BPM",20,400,120,1},{"seqSwing","Swing","Swing",0,.49f,0,.01f},{"seqHuman","Humanisation","Humanize",0,1,0,.01f},{"arpMode","Mode arpège","Arp mode",0,6,0,1},{"arpOctaves","Octaves","Octaves",1,4,1,1},{"arpGate","Gate","Gate",.05f,.98f,.7f,.01f},{"seqScale","Gamme","Scale",0,4,0,1},{"seqRoot","Tonalité","Root",0,11,0,1},
 {"motionMode","Trajectoire","Trajectory",0,5,0,1},{"motionLength","Points","Points",1,64,16,1},{"motionRate","Vitesse","Rate",.01f,20,.2f,.01f},{"motionDepth","Profondeur","Depth",0,1,.75f,.01f},{"motionSync","Sync tempo","Tempo sync",0,1,0,1},{"xyPitch","Hauteur","Pitch",0,1,0,.01f},{"xyPan","Panoramique","Pan",0,1,0,.01f},{"xyTone","Filtrage","Filter",0,1,0,.01f},{"xySpread","Largeur","Spread",0,1,0,.01f},
 {"voiceMode","Mode de voix","Voice mode",0,2,0,1},{"mpeMode","Mode MPE","MPE mode",0,1,0,1},{"glideMs","Glide","Glide",0,2000,0,1},{"bendRange","Pitch Bend","Pitch bend",1,24,2,1},{"memberRange","Pitch MPE","MPE bend",1,96,48,1},{"touchAmount","Aftertouch","Aftertouch",0,1,0,.01f},{"timbreAmount","Timbre MPE","MPE timbre",0,1,0,.01f},{"stateMorph","Morph A/B","Morph A/B",0,1,0,.001f},{"morphEnabled","Morph actif","Morph enabled",0,1,0,1},
-{"oscMode1","Mode","Mode",0,9,0,1},
+{"oscMode1","Mode","Mode",0,10,0,1},
 {"oscUnison1","Unisson","Unison",1,16,1,1},
 {"oscDetune1","Désaccord","Detune",0,100,0,0.1},
 {"oscFine1","Accord fin","Fine tune",-100,100,0,0.1},
@@ -24,7 +24,7 @@ const Spec globalSpecs[]={{"osc1","Niveau OSC 1","OSC 1 level",0,1,.2,.01},{"osc
 {"oscIndex1","Index FM","FM index",0,8,1,0.01},
 {"oscSub1","Sub","Sub",0,1,0,0.01},
 {"oscSync1","Hard Sync","Hard sync",0,1,0,1},
-{"oscMode2","Mode","Mode",0,9,0,1},
+{"oscMode2","Mode","Mode",0,10,0,1},
 {"oscUnison2","Unisson","Unison",1,16,1,1},
 {"oscDetune2","Désaccord","Detune",0,100,0,0.1},
 {"oscFine2","Accord fin","Fine tune",-100,100,0,0.1},
@@ -92,7 +92,7 @@ class Processor: public AudioProcessor,private Timer {public:
 
 AudioProcessorValueTreeState state;std::unique_ptr<eg::Engine> engine;eg::SpectralEngine spectral;eg::NoteSequencer sequencer;eg::MotionClock motion;std::atomic<int> playStep{-1};std::atomic<float> liveX{.5f},liveY{.5f};std::atomic<float> peak{0},peakR{0};std::array<std::atomic<float>,512> analysis{};std::atomic<unsigned> analysisHead{0};float get(String id)const{return state.getRawParameterValue(id)->load();}void set(String id,float x){if(auto* p=state.getParameter(id)){p->beginChangeGesture();p->setValueNotifyingHost(p->convertTo0to1(x));p->endChangeGesture();}}
 const String getName()const override{return "Equilibrium Grain";}bool acceptsMidi()const override{return true;}bool producesMidi()const override{return false;}bool isMidiEffect()const override{return false;}double getTailLengthSeconds()const override{return 12;}int getNumPrograms()override{return 1;}int getCurrentProgram()override{return 0;}void setCurrentProgram(int)override{}const String getProgramName(int)override{return "Init";}void changeProgramName(int,const String&)override{}bool hasEditor()const override{return true;}AudioProcessorEditor* createEditor()override;void prepareToPlay(double r,int)override{engine->prepare(r);spectral.prepare(r);sequencer.prepare(r);motion.reset();playStep.store(-1);lastSeqMode=0;}void releaseResources()override{}bool isBusesLayoutSupported(const BusesLayout& l)const override{return l.getMainOutputChannelSet()==AudioChannelSet::stereo();}
-void processBlock(AudioBuffer<float>& b,MidiBuffer& midi)override{ScopedNoDenormals nd;b.clear();if(b.getNumChannels()<2)return;prepareMapping();eg::Settings s;for(int i=0;i<4;++i){auto& l=s.layers[i];auto v=[&](const char* id){return audioValue(lid(i,id));};l.level=v("level");l.pan=v("pan");l.size=v("size");l.density=v("density");l.position=v("position");l.scatter=v("scatter");l.pitch=v("pitch");l.drift=v("drift");l.spread=v("spread");l.motion=v("motion");l.cutoff=v("cutoff");l.cutoff2=v("cutoff2");l.resonance=v("resonance");l.resonance2=v("resonance2");l.filterMode=int(v("filterMode"));l.filterMode2=int(v("filterMode2"));l.filterRouting=int(v("filterRouting"));l.source=int(v("source"));l.direction=int(v("direction"));l.shape=int(v("shape"));l.enabled=v("enabled")>.5f;l.sampleMode=v("sampleMode")>.5f;l.root=int(v("root"));l.start=v("start");l.end=v("end");l.fadeIn=v("fadeIn");l.fadeOut=v("fadeOut");l.normalize=v("normalize")>.5f;}
+void processBlock(AudioBuffer<float>& b,MidiBuffer& midi)override{ScopedNoDenormals nd;b.clear();if(b.getNumChannels()<2)return;prepareMapping();eg::Settings s;for(int i=0;i<4;++i){auto& l=s.layers[i];auto v=[&](const char* id){return audioValue(lid(i,id));};l.level=v("level");l.pan=v("pan");l.size=v("size");l.density=v("density");l.position=v("position");l.scatter=v("scatter");l.pitch=v("pitch");l.drift=v("drift");l.spread=v("spread");l.motion=v("motion");l.cutoff=v("cutoff");l.cutoff2=v("cutoff2");l.resonance=v("resonance");l.resonance2=v("resonance2");l.filterMode=int(v("filterMode"));l.filterMode2=int(v("filterMode2"));l.filterRouting=int(v("filterRouting"));l.source=int(v("source"));l.direction=int(v("direction"));l.shape=int(v("shape"));l.enabled=v("enabled")>.5f;l.sampleMode=v("sampleMode")>.5f;l.root=int(v("root"));l.start=v("start");l.end=v("end");l.fadeIn=v("fadeIn");l.fadeOut=v("fadeOut");l.normalize=v("normalize")>.5f;l.loopCrossfade=v("loopCrossfade");}
 #define READ(x) s.x=audioValue(#x)
 READ(osc1);READ(osc2);READ(oscPitch1);READ(oscPitch2);READ(fm);READ(ring);READ(attack);READ(release);READ(master);READ(velocity);READ(lfoRate);READ(lfoDepth);READ(xyX);READ(xyY);READ(xyPos);READ(xyDensity);READ(drive);READ(xyPitch);READ(xyPan);READ(xyTone);READ(xySpread);
  for(int i=0;i<2;++i){auto& h=s.hybrid[i];auto v=[&](const char* k){return audioValue("osc"+String(k)+String(i+1));};h.mode=int(v("Mode"));h.unison=int(v("Unison"));h.detune=v("Detune");h.fine=v("Fine");h.width=v("Width");h.shape=v("Shape");h.ratio=v("Ratio");h.index=v("Index");h.sub=v("Sub");h.sync=v("Sync")>.5f;}
@@ -127,16 +127,41 @@ for(int i=0;i<8;++i)s.macros[i]=mapTargets[i]>=0?.5f:audioValue("macro"+String(i
   auto s=std::make_unique<eg::SampleData>();s->rate=reader->sampleRate;s->name=f.getFileName().toStdString();s->path=f.getFullPathName().toStdString();s->left.resize(size_t(n));s->right.resize(size_t(n));s->peak=0;
   const float* l=buf.getReadPointer(0);const float* r=buf.getReadPointer(reader->numChannels==2?1:0);
   for(int i=0;i<n;++i){s->left[size_t(i)]=std::isfinite(l[i])?jlimit(-4.f,4.f,l[i]):0.f;s->right[size_t(i)]=std::isfinite(r[i])?jlimit(-4.f,4.f,r[i]):0.f;s->peak=jmax(s->peak,std::abs(s->left[size_t(i)]),std::abs(s->right[size_t(i)]));}
-  if(!engine->samples.publish(layer,std::move(s)))return "Sample memory limit reached (128 MiB per instance)";
+  auto analysis=eg::analyseSample(*s);if(!engine->samples.publish(layer,std::move(s)))return "Sample memory limit reached (128 MiB per instance)";
   state.state.setProperty(lid(layer,"samplePath"),f.getFullPathName(),nullptr);
-  if(select){set(lid(layer,"sampleMode"),1);set(lid(layer,"enabled"),1);set(lid(layer,"start"),0);set(lid(layer,"end"),1);set(lid(layer,"root"),60);set(lid(layer,"fadeIn"),0);set(lid(layer,"fadeOut"),0);set(lid(layer,"normalize"),0);}
+  if(select){set(lid(layer,"sampleMode"),1);set(lid(layer,"enabled"),1);set(lid(layer,"start"),0);set(lid(layer,"end"),1);set(lid(layer,"root"),analysis.root>=0?analysis.root:60);set(lid(layer,"fadeIn"),0);set(lid(layer,"fadeOut"),0);set(lid(layer,"normalize"),0);set(lid(layer,"loopCrossfade"),0);set(lid(layer,"stretchFactor"),1);set(lid(layer,"shiftAmount"),0);}
   return {};
  }
+ std::array<String,2> loadedWTPath{};std::array<int,2> loadedWTFrame{};
+ String loadWavetable(int osc,const File& f,int frameSize,bool select=true){
+  if(osc<0||osc>=2||!f.existsAsFile())return "Invalid wavetable file";
+  AudioFormatManager fm;fm.registerBasicFormats();std::unique_ptr<AudioFormatReader> reader(fm.createReaderFor(f));
+  if(!reader||reader->lengthInSamples<32||reader->lengthInSamples>8192*16||reader->numChannels<1||reader->numChannels>2)return "Invalid mono/stereo wavetable";
+  int n=int(reader->lengthInSamples);if(frameSize==0)frameSize=n;if(frameSize<32||frameSize>8192||n%frameSize||n/frameSize>16)return "Use 1 cycle (32-8192 samples) or 1-16 frames of selected size";
+  AudioBuffer<float> data(int(reader->numChannels),n);if(!reader->read(&data,0,n,0,true,true))return "Wavetable decoding failed";std::vector<float> samples(size_t(n),0);
+  for(int i=0;i<n;++i)samples[i]=.5f*(data.getSample(0,i)+data.getSample(reader->numChannels==2?1:0,i));
+  auto table=eg::UserWavetable::build(samples,frameSize);if(!engine->userTables.publish(osc,std::move(table)))return "Wavetable memory limit (32 MiB)";
+  loadedWTPath[osc]=f.getFullPathName();loadedWTFrame[osc]=frameSize;state.state.setProperty("wtPath"+String(osc),loadedWTPath[osc],nullptr);state.state.setProperty("wtFrame"+String(osc),frameSize,nullptr);if(select)set("oscMode"+String(osc+1),10);return {};
+ }
+ bool randomLocked(const String& id)const{return bool(state.state.getProperty("lock_"+id,false));}
+ void toggleRandomLock(const String& id){state.state.setProperty("lock_"+id,!randomLocked(id),nullptr);}
+ std::vector<std::pair<String,float>> randomUndo;
+ void randomize(float amount){
+  randomUndo.clear();auto& rng=Random::getSystemRandom();auto vary=[&](String id,float lo,float hi){if(randomLocked(id))return;auto* p=state.getParameter(id);if(!p)return;float old=get(id),target=lo+(hi-lo)*rng.nextFloat();randomUndo.emplace_back(id,old);set(id,old+(target-old)*amount);};
+  for(int l=0;l<4;++l){if(get(lid(l,"enabled"))<.5f)continue;vary(lid(l,"size"),35,800);vary(lid(l,"density"),8,65);vary(lid(l,"position"),.1f,.9f);vary(lid(l,"scatter"),0,.3f);vary(lid(l,"spread"),.15f,.8f);vary(lid(l,"motion"),0,.25f);vary(lid(l,"cutoff"),1500,13000);vary(lid(l,"resonance"),.6f,2);vary(lid(l,"pan"),-.3f,.3f);}
+  for(int i=1;i<=2;++i)if(get("osc"+String(i))>.001f){vary("oscShape"+String(i),.1f,.9f);vary("oscDetune"+String(i),0,30);vary("oscFine"+String(i),-8,8);vary("oscWidth"+String(i),.2f,.9f);}
+  vary("attack",.015f,.8f);vary("release",.15f,2.4f);for(int i=0;i<12;++i)if(get(fxid(i,"type"))>0&&get(fxid(i,"enabled"))>.5f){vary(fxid(i,"amount"),.15f,.7f);vary(fxid(i,"mix"),.1f,.45f);}
+ }
+ void undoRandom(){for(auto& entry:randomUndo)set(entry.first,entry.second);randomUndo.clear();}
+ bool validPreset(const File& f)const{if(!f.existsAsFile()||f.getSize()>8*1024*1024)return false;MemoryBlock b;if(!f.loadFileAsData(b))return false;auto x=getXmlFromBinary(b.getData(),int(b.getSize()));return x&&x->hasTagName(state.state.getType());}
+ bool saveUserPreset(const File& f){MemoryBlock b;getStateInformation(b);return f.replaceWithData(b.getData(),b.getSize());}
+ bool openUserPreset(const File& f){if(!validPreset(f))return false;MemoryBlock b;if(!f.loadFileAsData(b))return false;setStateInformation(b.getData(),int(b.getSize()));randomUndo.clear();return true;}
  void getStateInformation(MemoryBlock& b)override{auto v=state.copyState();saveExtra(v);if(auto x=v.createXml())copyXmlToBinary(*x,b);}
  void setStateInformation(const void* d,int n)override{
   if(auto x=getXmlFromBinary(d,n))if(x->hasTagName(state.state.getType())){
    state.replaceState(ValueTree::fromXml(*x));restoreExtra();
    for(int j=0;j<4;++j){auto path=state.state.getProperty(lid(j,"samplePath")).toString();auto* old=engine->samples.get(j);if(old&&String::fromUTF8(old->path.c_str())==path)continue;engine->samples.clear(j);if(path.isNotEmpty())loadSample(j,File(path),false);}
+   for(int j=0;j<2;++j){auto path=state.state.getProperty("wtPath"+String(j)).toString();int frame=int(state.state.getProperty("wtFrame"+String(j),0));if(path==loadedWTPath[j]&&frame==loadedWTFrame[j]&&engine->userTables.get(j))continue;engine->userTables.clear(j);loadedWTPath[j].clear();loadedWTFrame[j]=0;if(path.isNotEmpty())loadWavetable(j,File(path),frame,false);}
   }
  }
 };
@@ -175,8 +200,8 @@ public:
  void mouseDown(const MouseEvent& e)override{
   if(!e.mods.isPopupMenu()){Slider::mouseDown(e);return;}bool fr=proc.french.load();PopupMenu m;int key=proc.learnedCC(parameter);
   if(key>=0)m.addSectionHeader("CC "+String(key%128)+" / MIDI "+String(key/128+1));
-  m.addItem(1,tr(fr,"MIDI Learn : tourner un contrôleur","MIDI Learn: move a controller"));m.addItem(2,tr(fr,"Supprimer l'affectation","Remove assignment"),key>=0);m.addItem(3,tr(fr,"Annuler l'apprentissage","Cancel learning"));
-  Component::SafePointer<LearnSlider> safe(this);m.showMenuAsync(PopupMenu::Options().withTargetComponent(this),[safe](int result){if(safe==nullptr)return;if(result==1)safe->proc.armLearn(safe->parameter);else if(result==2)safe->proc.unlearn(safe->parameter);else if(result==3)safe->proc.cancelLearn();});
+  m.addItem(1,tr(fr,"MIDI Learn : tourner un contrôleur","MIDI Learn: move a controller"));m.addItem(2,tr(fr,"Supprimer l'affectation","Remove assignment"),key>=0);m.addItem(3,tr(fr,"Annuler l'apprentissage","Cancel learning"));m.addSeparator();m.addItem(4,proc.randomLocked(parameter)?tr(fr,"Déverrouiller pour la randomisation","Unlock for randomization"):tr(fr,"Verrouiller pour la randomisation","Lock for randomization"));
+  Component::SafePointer<LearnSlider> safe(this);m.showMenuAsync(PopupMenu::Options().withTargetComponent(this),[safe](int result){if(safe==nullptr)return;if(result==1)safe->proc.armLearn(safe->parameter);else if(result==2)safe->proc.unlearn(safe->parameter);else if(result==3)safe->proc.cancelLearn();else if(result==4)safe->proc.toggleRandomLock(safe->parameter);});
  }
 };
 class Knob:public Component {
@@ -192,7 +217,7 @@ public:
   if(id.endsWith("_density"))slider.setTextValueSuffix(" Hz");
   if(id.endsWith("_pitch")||id.endsWith("_drift")||id.startsWith("oscPitch"))slider.setTextValueSuffix(" st");
   if(id.endsWith("_cutoff")||id.endsWith("_cutoff2"))slider.setTextValueSuffix(" Hz");
-  if(id=="master")slider.setTextValueSuffix(" dB");if(id.startsWith("oscFine")||id.startsWith("oscDetune"))slider.setTextValueSuffix(" ct");
+  if(id=="master")slider.setTextValueSuffix(" dB");if(id.endsWith("_loopCrossfade"))slider.setTextValueSuffix(" ms");if(id.endsWith("_stretchFactor"))slider.setTextValueSuffix(" x");if(id.endsWith("_shiftAmount"))slider.setTextValueSuffix(" st");if(id.startsWith("oscFine")||id.startsWith("oscDetune"))slider.setTextValueSuffix(" ct");
  }
  void resized()override{auto r=getLocalBounds();label.setBounds(r.removeFromTop(20));slider.setBounds(r);}
 };
@@ -238,7 +263,7 @@ public:
   g.setColour(gold.withAlpha(.65f));g.drawHorizontalLine(818,0,1500);g.setColour(Colour(0xff545b48));g.drawVerticalLine(1296,835,957);
   text(g,"PERFORMANCE",26,862,120,17,11,muted,true);text(g,"M A C R O S",26,880,130,28,19,champ,true);text(g,tr(fr,"Contrôles directs","Direct controls"),26,918,125,15,10,muted,false);
   g.setColour(Colour(0xff141a16));g.fillRect(0,971,1500,29);g.setColour(Colour(0xff4e5647));g.drawHorizontalLine(971,0,1500);
-  text(g,tr(fr,"SOURCES INTERNES ET SAMPLES  /  MIDI POLYPHONIQUE  /  V0.7","BUILT-IN AND USER SAMPLES  /  MIDI POLYPHONIC  /  V0.7"),26,978,700,15,10,muted,true);
+  text(g,tr(fr,"SOURCES INTERNES ET SAMPLES  /  MIDI POLYPHONIQUE  /  V0.8","BUILT-IN AND USER SAMPLES  /  MIDI POLYPHONIC  /  V0.8"),26,978,700,15,10,muted,true);
   text(g,"SHAPE SOUND BEYOND REALITY.",1110,978,365,15,10,muted,true,Justification::centredRight);
   for(auto pt:{Point<float>(9,9),Point<float>(1490,9),Point<float>(9,990),Point<float>(1490,990)}){g.setColour(Colour(0xff62675b));g.drawEllipse(pt.x-3,pt.y-3,6,6,1);g.drawLine(pt.x-1.5f,pt.y+1.5f,pt.x+1.5f,pt.y-1.5f,1);}
  }
@@ -250,7 +275,7 @@ public:
   if(page==4&&!rackPage&&!spectralPage)for(int i=0;i<2;++i){auto r=filterRect(i);if(r.contains(p))proc.set(lid(layer,i?"cutoff2":"cutoff"),20.f*std::pow(1000.f,jlimit(0.f,1.f,(p.x-r.getX())/r.getWidth())));}
  }
 private:
- Processor& proc;ReferenceLook look;bool fr=true;int page=0,layer=0,current=-1,zoom=1,category=0;bool rackPage=false,spectralPage=false;int motionPage=0,seqBank=0,seqLane=0,recordCount=0,perfPage=0;std::array<std::array<Knob*,10>,2> hybridKnobs{};std::array<TextButton*,2> hybridSync{};bool recording=false;std::array<TextButton*,16> seqButtons{};TextButton* recordButton=nullptr;String midiStatus;int modPage=0,modBank=0,modUnit=0,stepBank=0;std::array<bool,eg::factoryCount> favorites{};int browserPage=0,matchCount=0;std::unique_ptr<FileChooser> chooser;String sampleStatus;TextButton* pageLabel=nullptr;std::array<TextButton*,13> categoryButtons{};
+ Processor& proc;ReferenceLook look;bool fr=true;int page=0,layer=0,current=-1,zoom=1,category=0;bool rackPage=false,spectralPage=false;int motionPage=0,seqBank=0,seqLane=0,recordCount=0,perfPage=0;int labPage=0,sliceIndex=0;const eg::SampleData* analysedSample=nullptr;eg::SampleAnalysis sampleAnalysis;bool userBrowser=false;int userPage=0;File bankFolder;Array<File> userFiles;std::array<int,8> userRows{};TextEditor* userSearch=nullptr;TextButton* userPageLabel=nullptr;String userStatus;float randomStrength=.35f;std::array<std::array<Knob*,10>,2> hybridKnobs{};std::array<TextButton*,2> hybridSync{};bool recording=false;std::array<TextButton*,16> seqButtons{};TextButton* recordButton=nullptr;String midiStatus;int modPage=0,modBank=0,modUnit=0,stepBank=0;std::array<bool,eg::factoryCount> favorites{};int browserPage=0,matchCount=0;std::unique_ptr<FileChooser> chooser;String sampleStatus;TextButton* pageLabel=nullptr;std::array<TextButton*,13> categoryButtons{};
  std::array<TextButton,8> tabs;std::array<TextButton,4> layers;TextButton language,previous,next;ComboBox sound;
  std::array<std::unique_ptr<Knob>,8> macros;std::unique_ptr<Knob> master;
  std::vector<std::unique_ptr<Component>> controls;std::vector<std::unique_ptr<AudioProcessorValueTreeState::ComboBoxAttachment>> combos;std::vector<std::unique_ptr<AudioProcessorValueTreeState::ButtonAttachment>> switches;
@@ -260,7 +285,7 @@ private:
  int presetCategory(int n)const{return eg::factory[n].category;}
  String catName(int n)const{const char* f[]={"Init","Pads atmosphériques","Textures cinématiques","Leads granulaires","Basses expérimentales","Grains rythmiques","Paysages ambiants","Instruments organiques","Glitch et expérimental","Textures vocales","FX et transitions"};const char* e[]={"Init","Atmospheric Pads","Cinematic Textures","Granular Leads","Experimental Basses","Rhythmic Grains","Ambient Soundscapes","Organic Instruments","Glitch & Experimental","Vocal Textures","Sound FX & Transitions"};return tr(fr,f[jlimit(0,10,n)],e[jlimit(0,10,n)]);}
  bool personal()const{return proc.get(lid(layer,"sampleMode"))>.5f;}
- void importSample(const File& f,int target){auto error=proc.loadSample(target,f);sampleStatus=error.isEmpty()?tr(fr,"Sample chargé","Sample loaded"):tr(fr,"Import impossible : ","Import failed: ")+error;if(target==layer)rebuild();else repaint();}
+ void importSample(const File& f,int target){analysedSample=nullptr;sliceIndex=0;auto error=proc.loadSample(target,f);sampleStatus=error.isEmpty()?tr(fr,"Sample chargé","Sample loaded"):tr(fr,"Import impossible : ","Import failed: ")+error;if(target==layer)rebuild();else repaint();}
  void chooseSample(){if(chooser)return;int target=layer;chooser=std::make_unique<FileChooser>(tr(fr,"Importer un sample","Import sample"),File{},"*.wav;*.wave;*.aif;*.aiff;*.aifc;*.flac");Component::SafePointer<ReferenceSurface> safe(this);chooser->launchAsync(FileBrowserComponent::openMode|FileBrowserComponent::canSelectFiles,[safe,target](const FileChooser& c){if(safe!=nullptr){auto f=c.getResult();MessageManager::callAsync([safe,target,f]{if(safe!=nullptr){safe->chooser.reset();if(f.existsAsFile())safe->importSample(f,target);}});}});}
  void sampleToggle(String id,String label,Rectangle<int> r){auto p=std::make_unique<TextButton>(label);p->setClickingTogglesState(true);auto* raw=addControl(std::move(p),r);switches.push_back(std::make_unique<AudioProcessorValueTreeState::ButtonAttachment>(proc.state,lid(layer,id.toRawUTF8()),*raw));}
  static void text(Graphics& g,String s,int x,int y,int w,int h,float font,Colour c,bool bold=false,Justification j=Justification::centredLeft){g.setColour(c);g.setFont(FontOptions(font,bold?Font::bold:Font::plain));g.drawFittedText(s,x,y,w,h,j,1,.75f);}
@@ -287,6 +312,7 @@ private:
   if(!user||imported){size_t frames=imported?imported->frames():src.size();auto val=[&](size_t k){return imported?(std::abs(imported->left[k])>=std::abs(imported->right[k])?imported->left[k]:imported->right[k]):src[k];};
    for(int i=0;i<count;++i){float t0=range.first+range.second*float(i)/count,t1=range.first+range.second*float(i+1)/count;size_t begin=std::min(frames-1,size_t(t0*frames)),end=std::min(frames,std::max(begin+1,size_t(t1*frames)));float lo=0,hi=0;size_t step=std::max<size_t>(1,(end-begin)/64);for(size_t k=begin;k<end;k+=step){float x=val(k);lo=std::min(lo,x);hi=std::max(hi,x);}g.drawVerticalLine(int(r.getX())+i,r.getCentreY()-jlimit(-1.f,1.f,hi)*r.getHeight()*.42f,r.getCentreY()-jlimit(-1.f,1.f,lo)*r.getHeight()*.42f);}
   }
+  if(imported&&page==1&&labPage==1&&analysedSample==imported){g.setColour(gold.withAlpha(.8f));for(auto n:sampleAnalysis.slices){float x=r.getX()+r.getWidth()*(float(n)/imported->frames()-range.first)/range.second;if(x>=r.getX()&&x<=r.getRight())g.drawVerticalLine(int(x),r.getY()+20,r.getBottom());}}
   if(imported){float st=proc.get(lid(layer,"start")),en=proc.get(lid(layer,"end"));g.setColour(champ.withAlpha(.6f));for(float v:{st,en}){float x=r.getX()+r.getWidth()*(v-range.first)/range.second;if(x>=r.getX()&&x<=r.getRight())g.drawVerticalLine(int(x),r.getY(),r.getBottom());}}
   float px=r.getX()+r.getWidth()*(proc.get(lid(layer,"position"))-range.first)/range.second;if(px>=r.getX()&&px<=r.getRight()){g.setColour(champ);g.drawVerticalLine(int(px),r.getY(),r.getBottom());Path tri;tri.addTriangle(px-6,r.getY(),px+6,r.getY(),px,r.getY()+8);g.fillPath(tri);}
   g.setColour(Colour(0xff273023));g.fillRect(base);text(g,tr(fr,"POSITION ","POSITION ")+String(proc.get(lid(layer,"position"))*100,1)+" %",int(base.getX())+16,int(base.getY())+4,320,20,11,muted,true);text(g,tr(fr,"GLISSER POUR DÉPLACER","DRAG TO SCAN"),int(base.getRight())-255,int(base.getY())+4,240,20,11,muted,true,Justification::centredRight);
@@ -299,15 +325,43 @@ private:
   wave(g);text(g,tr(fr,"SPECTRE DE SORTIE","OUTPUT SPECTRUM"),296,539,400,18,11,muted,true);drawSpectrum(g,{296,563,880,44});note(g,tr(fr,"Forme d'enveloppe","Envelope shape"),1200,540,265);
   panelBox(g,{26,623,1441,163});panelTitle(g,46,632,470,tr(fr,"TEMPS / HAUTEUR / ESPACE","TIME / PITCH / SPACE"),tr(fr,"Architecture des grains","Grain architecture"));
  }
- void paintLab(Graphics& g){
-  wave(g);panelBox(g,{26,568,700,228});panelTitle(g,47,583,660,"SOURCE LAB",tr(fr,"Région et préparation","Region & preparation"));note(g,sampleStatus.isNotEmpty()?sampleStatus:tr(fr,"WAV / AIFF / FLAC : glisser ou importer (30 s max.)","WAV / AIFF / FLAC: drag or import (30 s max.)"),48,634,650);
-  panelBox(g,{747,568,720,228});panelTitle(g,768,583,670,tr(fr,"VARIATION PAR GRAIN","PER-GRAIN VARIATION"),tr(fr,"Variation des grains","Grain variation"));
+ void analyseCurrent(){auto* a=proc.engine->samples.get(layer);if(a!=analysedSample){analysedSample=a;sliceIndex=0;sampleAnalysis=a?eg::analyseSample(*a):eg::SampleAnalysis{};}}
+ void selectSlice(int delta){analyseCurrent();auto* a=analysedSample;if(!a||sampleAnalysis.slices.empty())return;int count=int(sampleAnalysis.slices.size());sliceIndex=jlimit(0,count-1,sliceIndex+delta);size_t start=sampleAnalysis.slices[size_t(sliceIndex)],end=sliceIndex+1<count?sampleAnalysis.slices[size_t(sliceIndex+1)]:a->frames();proc.set(lid(layer,"start"),float(start)/a->frames());proc.set(lid(layer,"end"),float(end)/a->frames());proc.set(lid(layer,"position"),.5f);repaint();}
+ void snapRegion(){auto* a=proc.engine->samples.get(layer);if(!a)return;size_t n=a->frames(),st=eg::nearestZero(*a,size_t(proc.get(lid(layer,"start"))*(n-1))),en=eg::nearestZero(*a,size_t(proc.get(lid(layer,"end"))*(n-1)));if(en<=st+1)en=std::min(n,st+2);proc.set(lid(layer,"start"),float(st)/n);proc.set(lid(layer,"end"),float(en)/n);repaint();}
+ void renderSample(){
+  if(chooser||!proc.engine->samples.get(layer))return;int target=layer;auto* a=proc.engine->samples.get(target);float st=proc.get(lid(target,"start")),en=proc.get(lid(target,"end")),ratio=proc.get(lid(target,"stretchFactor")),pitch=proc.get(lid(target,"shiftAmount"));
+  chooser=std::make_unique<FileChooser>(tr(fr,"Créer un nouveau WAV","Create a new WAV"),File::getSpecialLocation(File::userDocumentsDirectory).getChildFile("Equilibrium-Processed.wav"),"*.wav");Component::SafePointer<ReferenceSurface> safe(this);
+  chooser->launchAsync(FileBrowserComponent::saveMode|FileBrowserComponent::canSelectFiles|FileBrowserComponent::warnAboutOverwriting,[safe,a,target,st,en,ratio,pitch](const FileChooser& f){if(safe==nullptr)return;auto dest=f.getResult();MessageManager::callAsync([safe,a,target,st,en,ratio,pitch,dest]{if(safe==nullptr)return;safe->chooser.reset();if(dest==File{})return;auto output=dest.withFileExtension("wav");if(output==File(String::fromUTF8(a->path.c_str()))){safe->sampleStatus=tr(safe->fr,"Choisir un autre fichier pour préserver l'original.","Choose a different file to preserve the original.");safe->repaint();return;}
+   auto result=eg::transformSample(*a,size_t(st*a->frames()),std::min(a->frames(),size_t(en*a->frames())),ratio,pitch);
+   if(!result){safe->sampleStatus=tr(safe->fr,"Région invalide ou durée supérieure à 30 s.","Invalid region or duration exceeds 30 s.");safe->repaint();return;}
+   AudioBuffer<float> audio(2,int(result->frames()));audio.copyFrom(0,0,result->left.data(),int(result->frames()));audio.copyFrom(1,0,result->right.data(),int(result->frames()));
+   // Write a temporary file before replacing the chosen destination.
+   TemporaryFile tmp(output);auto stream=tmp.getFile().createOutputStream();bool ok=false;if(stream&&stream->openedOk()){WavAudioFormat wav;std::unique_ptr<AudioFormatWriter> writer(wav.createWriterFor(stream.get(),result->rate,2,24,{},0));if(writer){stream.release();ok=writer->writeFromAudioSampleBuffer(audio,0,audio.getNumSamples());writer.reset();if(ok)ok=tmp.overwriteTargetFileWithTemporary();}}
+   if(ok)safe->importSample(output,target);else{safe->sampleStatus=tr(safe->fr,"Échec de l'écriture WAV","WAV write failed");safe->repaint();}
+  });});
  }
- StringArray hybridModes()const{return {tr(fr,"Sinusoïde","Sine"),"Triangle",tr(fr,"Dent de scie","Saw"),tr(fr,"Carré","Square"),tr(fr,"Impulsion / PWM","Pulse / PWM"),"Wavetable","FM / Phase Mod",tr(fr,"Bruit blanc","White noise"),tr(fr,"Sub-oscillateur","Sub oscillator"),tr(fr,"Oscillateur spectral","Spectral oscillator")};}
+ void paintLab(Graphics& g){
+  wave(g);if(labPage==0){panelBox(g,{26,568,700,228});panelTitle(g,47,583,660,"SOURCE LAB",tr(fr,"Région et préparation","Region & preparation"));note(g,sampleStatus.isNotEmpty()?sampleStatus:tr(fr,"WAV / AIFF / FLAC : glisser ou importer (30 s max.)","WAV / AIFF / FLAC: drag or import (30 s max.)"),48,634,650);panelBox(g,{747,568,720,228});panelTitle(g,768,583,670,tr(fr,"VARIATION PAR GRAIN","PER-GRAIN VARIATION"),tr(fr,"Variation des grains","Grain variation"));return;}
+  panelBox(g,{26,568,700,228});panelTitle(g,47,580,660,tr(fr,"ANALYSE","ANALYSIS"),tr(fr,"Note et transitoires","Pitch and transients"));
+  auto* a=proc.engine->samples.get(layer);String info=a&&analysedSample==a?String(sampleAnalysis.slices.size())+tr(fr," slices / "," slices / ")+(sampleAnalysis.root>=0?"MIDI "+String(sampleAnalysis.root):tr(fr,"note indéterminée","unknown pitch")):tr(fr,"Importer un sample puis analyser","Import a sample then analyse");
+  note(g,info,48,632,660);note(g,sampleStatus,48,765,655);
+  panelBox(g,{747,568,720,228});panelTitle(g,768,580,670,tr(fr,"TRAITEMENT NON DESTRUCTIF","NON-DESTRUCTIVE PROCESSING"),tr(fr,"Boucle et transformation","Loop and transform"));note(g,tr(fr,"Le rendu crée un nouveau WAV (30 s maximum).","Render creates a new WAV (30 s maximum)."),768,632,670);
+ }
+ void buildLab(){
+  zoomButtons();auto* edit=button(tr(fr,"RÉGION","REGION"),{405,198,155,41},[this]{labPage=0;rebuild();});edit->setToggleState(labPage==0,dontSendNotification);
+  auto* pro=button(tr(fr,"ANALYSE / PRO","ANALYSIS / PRO"),{570,198,200,41},[this]{labPage=1;analyseCurrent();rebuild();});pro->setToggleState(labPage==1,dontSendNotification);
+  button(tr(fr,"IMPORTER","IMPORT"),{1060,198,170,41},[this]{chooseSample();});sampleToggle("sampleMode",tr(fr,"SAMPLE PERSONNEL","USER SAMPLE"),{1240,198,225,41});
+  if(labPage==0){sourceCombo({48,656,415,33});sampleToggle("normalize",tr(fr,"NORMALISER","NORMALIZE"),{473,656,230,33});const char* ids[]={"start","end","fadeIn","fadeOut","root"};for(int i=0;i<5;++i)local(ids[i],49+i*131,695,124,98);local("scatter",768,642,152,145);local("drift",940,642,152,145);local("spread",1112,642,152,145);local("density",1284,642,152,145);return;}
+  analyseCurrent();button(tr(fr,"NOTE AUTO","AUTO PITCH"),{48,660,205,38},[this]{analyseCurrent();if(sampleAnalysis.root>=0){proc.set(lid(layer,"root"),float(sampleAnalysis.root));sampleStatus=tr(fr,"Note fondamentale appliquée","Root note applied");}else sampleStatus=tr(fr,"Note non détectée","No reliable pitch");repaint();});
+  button(tr(fr,"TRANSITOIRES","TRANSIENTS"),{263,660,205,38},[this]{analysedSample=nullptr;analyseCurrent();selectSlice(0);});button(tr(fr,"PASSAGES ZÉRO","ZERO CROSSINGS"),{478,660,225,38},[this]{snapRegion();});
+  button(tr(fr,"SLICE PRÉC.","PREV SLICE"),{48,713,205,38},[this]{selectSlice(-1);});button(tr(fr,"SLICE SUIV.","NEXT SLICE"),{263,713,205,38},[this]{selectSlice(1);});button(tr(fr,"RÉGION ENTIÈRE","FULL REGION"),{478,713,225,38},[this]{proc.set(lid(layer,"start"),0);proc.set(lid(layer,"end"),1);});
+  local("loopCrossfade",768,654,160,136);local("stretchFactor",936,654,160,136);local("shiftAmount",1104,654,160,136);button(tr(fr,"RENDRE WAV","RENDER WAV"),{1273,700,172,42},[this]{renderSample();});
+ }
+ StringArray hybridModes()const{return {tr(fr,"Sinusoïde","Sine"),"Triangle",tr(fr,"Dent de scie","Saw"),tr(fr,"Carré","Square"),tr(fr,"Impulsion / PWM","Pulse / PWM"),"Wavetable","FM / Phase Mod",tr(fr,"Bruit blanc","White noise"),tr(fr,"Sub-oscillateur","Sub oscillator"),tr(fr,"Oscillateur spectral","Spectral oscillator"),tr(fr,"Wavetable personnelle","User wavetable")};}
  void paintSynth(Graphics& g){
   const auto names=hybridModes();
   for(int i=0;i<2;++i){int x=26+i*720;panelBox(g,{float(x),198,702,448});panelTitle(g,x+21,211,660,tr(fr,"SYNTHÈSE HYBRIDE","HYBRID SYNTHESIS"),"Oscillator 0"+String(i+1));
-   int mode=jlimit(0,9,int(proc.get("oscMode"+String(i+1))));text(g,names[mode],x+322,237,339,24,15,champ,true,Justification::centredRight);
+   int mode=jlimit(0,10,int(proc.get("oscMode"+String(i+1))));text(g,mode==10?(proc.engine->userTables.get(i)?File(proc.loadedWTPath[i]).getFileName():tr(fr,"Table manquante","Missing table")):names[mode],x+280,237,220,24,14,champ,true,Justification::centredRight);
    auto r=Rectangle<float>(float(x+21),317,660,79);g.setColour(Colour(0xff19211e));g.fillRect(r);g.setColour(Colour(0xff43503d));g.drawRect(r,1);
    for(int j=1;j<12;++j){g.setColour(Colour(0xff344036));g.drawVerticalLine(int(r.getX()+j*r.getWidth()/12),r.getY(),r.getBottom());}g.drawHorizontalLine(int(r.getCentreY()),r.getX(),r.getRight());
    auto head=proc.engine->hybridHead.load(std::memory_order_acquire);Path wave;for(int n=0;n<512;++n){float v=proc.engine->hybridView[i][(head+unsigned(n))%512].load(std::memory_order_relaxed);float px=r.getX()+r.getWidth()*n/511.f,py=r.getCentreY()-jlimit(-1.f,1.f,v*2.f)*r.getHeight()*.43f;if(n==0)wave.startNewSubPath(px,py);else wave.lineTo(px,py);}g.setColour(champ);g.strokePath(wave,PathStrokeType(1.4f));
@@ -318,12 +372,16 @@ private:
  }
  void updateHybridControls(){
   for(int i=0;i<2;++i){if(!hybridKnobs[i][0])continue;auto suf=String(i+1);int mode=int(proc.get("oscMode"+suf)),u=int(proc.get("oscUnison"+suf));
-   hybridKnobs[i][4]->setEnabled(u>1&&mode!=7);hybridKnobs[i][5]->setEnabled(u>1);hybridKnobs[i][6]->setEnabled(mode==4||mode==5||mode==9);hybridKnobs[i][6]->label.setText(mode==4?tr(fr,"Largeur pulse","Pulse width"):mode==5?tr(fr,"Position WT","WT position"):mode==9?tr(fr,"Spectre A/B","Spectrum A/B"):tr(fr,"Forme","Shape"),dontSendNotification);
+   hybridKnobs[i][4]->setEnabled(u>1&&mode!=7);hybridKnobs[i][5]->setEnabled(u>1);hybridKnobs[i][6]->setEnabled(mode==4||mode==5||mode==9||mode==10);hybridKnobs[i][6]->label.setText(mode==4?tr(fr,"Largeur pulse","Pulse width"):(mode==5||mode==10)?tr(fr,"Position WT","WT position"):mode==9?tr(fr,"Spectre A/B","Spectrum A/B"):tr(fr,"Forme","Shape"),dontSendNotification);
    hybridKnobs[i][7]->setEnabled(mode==6);hybridKnobs[i][8]->setEnabled(mode==6);hybridKnobs[i][9]->setEnabled(mode!=8);hybridKnobs[i][1]->setEnabled(mode!=7||proc.get("oscSub"+suf)>0);hybridKnobs[i][2]->setEnabled(mode!=7||proc.get("oscSub"+suf)>0);if(hybridSync[i])hybridSync[i]->setEnabled(mode!=7&&mode!=8);
   }
  }
+ void chooseWT(int i,int frame){
+  if(chooser)return;chooser=std::make_unique<FileChooser>(tr(fr,"Importer une wavetable","Import wavetable"),File{},"*.wav;*.aif;*.aiff;*.flac");Component::SafePointer<ReferenceSurface> safe(this);chooser->launchAsync(FileBrowserComponent::openMode|FileBrowserComponent::canSelectFiles,[safe,i,frame](const FileChooser& c){if(safe==nullptr)return;auto f=c.getResult();MessageManager::callAsync([safe,i,frame,f]{if(safe==nullptr)return;safe->chooser.reset();if(!f.existsAsFile())return;auto err=safe->proc.loadWavetable(i,f,frame);if(err.isNotEmpty())AlertWindow::showMessageBoxAsync(AlertWindow::WarningIcon,tr(safe->fr,"Import impossible","Import failed"),err);safe->repaint();});});
+ }
+ void wtMenu(int i){PopupMenu m;m.addItem(1,tr(fr,"Un cycle (32 à 8192 samples)","Single cycle (32-8192 samples)"));m.addItem(2,"1024 samples / frame");m.addItem(3,"2048 samples / frame");m.addItem(4,"4096 samples / frame");Component::SafePointer<ReferenceSurface> safe(this);m.showMenuAsync(PopupMenu::Options(),[safe,i](int n){if(safe!=nullptr&&n>0)safe->chooseWT(i,n==1?0:n==2?1024:n==3?2048:4096);});}
  void buildHybrid(){
-  for(int i=0;i<2;++i){int x=26+i*720;String suf=String(i+1);modCombo("oscMode"+suf,hybridModes(),{x+21,272,480,34});
+  for(int i=0;i<2;++i){int x=26+i*720;String suf=String(i+1);modCombo("oscMode"+suf,hybridModes(),{x+21,272,480,34});button(tr(fr,"IMPORT WT","IMPORT WT"),{x+515,235,166,30},[this,i]{wtMenu(i);});
    auto toggle=std::make_unique<TextButton>("HARD SYNC");toggle->setClickingTogglesState(true);auto* raw=addControl(std::move(toggle),{x+515,272,166,34});switches.push_back(std::make_unique<AudioProcessorValueTreeState::ButtonAttachment>(proc.state,"oscSync"+suf,*raw));hybridSync[i]=raw;
    String ids[]={"osc"+suf,"oscPitch"+suf,"oscFine"+suf,"oscUnison"+suf,"oscDetune"+suf,"oscWidth"+suf,"oscShape"+suf,"oscRatio"+suf,"oscIndex"+suf,"oscSub"+suf};
    for(int k=0;k<10;++k)hybridKnobs[i][k]=global(ids[k].toRawUTF8(),x+22+(k%5)*132,405+(k/5)*119,126,116);
@@ -490,7 +548,38 @@ private:
   const char* bottom[]={"touchAmount","timbreAmount","attack","release"};for(int i=0;i<4;++i)global(bottom[i],768+i*170,482,160,110);
   button(tr(fr,"ANNULER LEARN","CANCEL LEARN"),{1170,728,270,42},[this]{proc.cancelLearn();repaint();});
  }
+ File defaultBank()const{return File::getSpecialLocation(File::userApplicationDataDirectory).getChildFile("Liberty Music Software").getChildFile("Equilibrium Grain").getChildFile("Presets");}
+ void ensureBank(){if(bankFolder==File{}){auto p=proc.state.state.getProperty("userBankPath").toString();bankFolder=p.isNotEmpty()?File(p):defaultBank();}if(!bankFolder.isDirectory()){auto res=bankFolder.createDirectory();if(res.failed())userStatus=res.getErrorMessage();}}
+ void refreshUserRows(){if(!userBrowser||!userSearch)return;ensureBank();userFiles.clear();auto q=userSearch->getText().trim();for(auto& f:bankFolder.findChildFiles(File::findFiles,false,"*.egpreset"))if(q.isEmpty()||f.getFileNameWithoutExtension().containsIgnoreCase(q))userFiles.add(f);int count=userFiles.size();userPage=jlimit(0,jmax(0,(count-1)/8),userPage);for(int i=0;i<8;++i){int n=userPage*8+i;userRows[i]=n<count?n:-1;rows[i]->setVisible(n<count);if(n<count)rows[i]->setButtonText(userFiles[n].getFileNameWithoutExtension());}if(userPageLabel)userPageLabel->setButtonText(String(userPage+1)+" / "+String(jmax(1,(count+7)/8))+" ("+String(count)+")");repaint();}
+ void openUser(int i){if(i<0||i>=userFiles.size())return;auto f=userFiles[i];if(proc.openUserPreset(f)){current=-1;sound.setSelectedId(1,dontSendNotification);sound.changeItemText(1,f.getFileNameWithoutExtension());proc.state.state.setProperty("userBankPath",bankFolder.getFullPathName(),nullptr);proc.spectral.request(eg::SpectralEngine::Clear);analysedSample=nullptr;userStatus=tr(fr,"Preset chargé : ","Preset loaded: ")+f.getFileNameWithoutExtension();}else userStatus=tr(fr,"Preset incompatible ou illisible","Incompatible or unreadable preset");repaint();}
+ void selectBank(){if(chooser)return;ensureBank();chooser=std::make_unique<FileChooser>(tr(fr,"Choisir ou créer une banque personnelle","Choose or create a personal bank"),bankFolder);Component::SafePointer<ReferenceSurface> safe(this);chooser->launchAsync(FileBrowserComponent::openMode|FileBrowserComponent::canSelectDirectories,[safe](const FileChooser& c){if(safe==nullptr)return;auto f=c.getResult();MessageManager::callAsync([safe,f]{if(safe==nullptr)return;safe->chooser.reset();if(!f.isDirectory())return;safe->bankFolder=f;safe->proc.state.state.setProperty("userBankPath",f.getFullPathName(),nullptr);safe->userPage=0;safe->refreshUserRows();});});}
+ void presetFileAction(int kind){if(chooser)return;ensureBank();bool importing=kind==1;File initial=importing?bankFolder:bankFolder.getChildFile("Nouveau son.egpreset");chooser=std::make_unique<FileChooser>(importing?tr(fr,"Importer un preset","Import preset"):kind==0?tr(fr,"Enregistrer un preset","Save preset"):tr(fr,"Exporter l'état actuel","Export current state"),initial,"*.egpreset");
+  Component::SafePointer<ReferenceSurface> safe(this);int flags=importing?(FileBrowserComponent::openMode|FileBrowserComponent::canSelectFiles):(FileBrowserComponent::saveMode|FileBrowserComponent::canSelectFiles|FileBrowserComponent::warnAboutOverwriting);
+  chooser->launchAsync(flags,[safe,kind](const FileChooser& c){if(safe==nullptr)return;auto f=c.getResult();MessageManager::callAsync([safe,kind,f]{if(safe==nullptr)return;safe->chooser.reset();if(f==File{})return;bool ok=false;
+   if(kind==1){if(safe->proc.validPreset(f)){auto dest=safe->bankFolder.getNonexistentChildFile(f.getFileNameWithoutExtension(),".egpreset",false);ok=f.copyFileTo(dest);}}
+   else ok=safe->proc.saveUserPreset(f.withFileExtension("egpreset"));
+   safe->userStatus=ok?tr(safe->fr,"Opération réussie","Operation successful"):tr(safe->fr,"Opération impossible","Operation failed");safe->refreshUserRows();
+  });});
+ }
+ void paintUserBrowser(Graphics& g){
+  panelBox(g,{26,198,295,600});panelTitle(g,47,214,253,tr(fr,"BIBLIOTHÈQUE","LIBRARY"),tr(fr,"Banques personnelles","Personal banks"));note(g,bankFolder.getFileName(),47,275,253);
+  note(g,tr(fr,"Randomisation musicale","Musical randomization"),47,504,253);note(g,tr(fr,"Intensité","Amount"),47,543,253);
+  note(g,tr(fr,"Clic droit : verrouiller","Right-click: lock parameter"),47,690,253);note(g,tr(fr,"Les fichiers audio restent externes.","Audio files remain external."),47,745,253);
+  g.setColour(Colour(0xff303b2c));g.fillRect(342,251,1125,37);text(g,tr(fr,"NOM DU PRESET UTILISATEUR","USER PRESET NAME"),360,257,600,24,12,muted,true);
+  for(int i=0;i<8;++i)if(userRows[i]>=0){int y=289+i*56;g.setColour(i%2?Colour(0xff222b22):Colour(0xff1c251e));g.fillRect(342,y,1125,54);text(g,bankFolder.getFileName(),1090,y+10,350,30,13,muted);}
+  note(g,userStatus,344,773,700);
+ }
+ void buildUserBrowser(){
+  ensureBank();button(tr(fr,"CHOISIR / CRÉER BANQUE","CHOOSE / CREATE BANK"),{47,302,253,38},[this]{selectBank();});
+  button(tr(fr,"ENREGISTRER","SAVE"),{47,350,253,38},[this]{presetFileAction(0);});button(tr(fr,"IMPORTER PRESET","IMPORT PRESET"),{47,398,253,38},[this]{presetFileAction(1);});button(tr(fr,"EXPORTER PRESET","EXPORT PRESET"),{47,446,253,38},[this]{presetFileAction(2);});
+  auto strength=std::make_unique<Slider>();strength->setSliderStyle(Slider::LinearHorizontal);strength->setTextBoxStyle(Slider::TextBoxRight,false,54,25);strength->setRange(0,100,1);strength->setValue(randomStrength*100,dontSendNotification);strength->setTextValueSuffix(" %");auto* st=addControl(std::move(strength),{47,566,253,34});st->onValueChange=[this,st]{randomStrength=float(st->getValue()/100);};
+  button(tr(fr,"VARIER LE SON","VARY SOUND"),{47,612,253,34},[this]{proc.randomize(randomStrength);userStatus=tr(fr,"Variation appliquée","Variation applied");repaint();});button(tr(fr,"ANNULER VARIATION","UNDO VARIATION"),{47,650,253,34},[this]{if(proc.randomUndo.empty())userStatus=tr(fr,"Aucune variation à annuler","Nothing to undo");else{proc.undoRandom();userStatus=tr(fr,"Variation annulée","Variation undone");}repaint();});
+  auto e=std::make_unique<TextEditor>();e->setTextToShowWhenEmpty(tr(fr,"Rechercher dans la banque...","Search bank..."),muted);e->onTextChange=[this]{userPage=0;refreshUserRows();};userSearch=addControl(std::move(e),{674,198,793,42});
+  for(int i=0;i<8;++i){rows[i]=button("",{350,290+i*56,718,52},[this,i]{openUser(userRows[i]);});rows[i]->getProperties().set("left",true);}
+  button("<",{1080,748,80,37},[this]{userPage=jmax(0,userPage-1);refreshUserRows();});userPageLabel=button("",{1170,748,180,37},[]{});userPageLabel->setInterceptsMouseClicks(false,false);button(">",{1360,748,95,37},[this]{++userPage;refreshUserRows();});refreshUserRows();
+ }
  void paintBrowser(Graphics& g){
+  if(userBrowser){paintUserBrowser(g);return;}
   panelBox(g,{26,198,295,600});panelTitle(g,47,214,253,"LIBERTY SOUND LIBRARY",tr(fr,"Trouvez votre équilibre.","Find your equilibrium."));note(g,tr(fr,"100 sons + Init","100 sounds + Init"),47,761,252);
   g.setColour(Colour(0xff303b2c));g.fillRect(342,251,1125,37);text(g,tr(fr,"NOM DU SON","SOUND NAME"),360,257,500,24,11,muted,true);text(g,tr(fr,"CATÉGORIE","CATEGORY"),1003,257,260,24,11,muted,true);text(g,tr(fr,"FAVORI","FAVORITE"),1380,257,72,24,11,muted,true);
   for(int i=0;i<8;++i){int n=rowIds[i];if(n<0)continue;auto y=289+i*56;g.setColour(i%2?Colour(0xff222b22):Colour(0xff1c251e));g.fillRect(342,y,1125,54);text(g,catName(presetCategory(n)),1003,y+3,355,25,14,muted);text(g,eg::factory[n].tag,1003,y+28,355,21,11,muted);}
@@ -505,7 +594,7 @@ private:
  void sourceCombo(Rectangle<int> r){StringArray v;for(int i=0;i<8;++i)v.add(sources()[i]);combo("source",v,r);}
  void zoomButtons(){auto r=waveRect();int x=int(r.getRight());button("-",{x-112,267,27,24},[this]{zoom=jmax(1,zoom/2);repaint();});button("+",{x-39,267,27,24},[this]{zoom=jmin(8,zoom*2);repaint();});}
  std::vector<std::unique_ptr<AudioProcessorValueTreeState::SliderAttachment>> modSliders;
- void clearPage(){for(auto& a:hybridKnobs)a.fill(nullptr);hybridSync.fill(nullptr);recordButton=nullptr;seqButtons.fill(nullptr);pageLabel=nullptr;categoryButtons.fill(nullptr);modSliders.clear();driveAttachment.reset();fxAmountControls.fill(nullptr);fxMixControls.fill(nullptr);fxOnControls.fill(nullptr);filterQ.fill(nullptr);switches.clear();combos.clear();controls.clear();rows.fill(nullptr);stars.fill(nullptr);rowIds.fill(-1);active=nullptr;search=nullptr;}
+ void clearPage(){userSearch=nullptr;userPageLabel=nullptr;userRows.fill(-1);for(auto& a:hybridKnobs)a.fill(nullptr);hybridSync.fill(nullptr);recordButton=nullptr;seqButtons.fill(nullptr);pageLabel=nullptr;categoryButtons.fill(nullptr);modSliders.clear();driveAttachment.reset();fxAmountControls.fill(nullptr);fxMixControls.fill(nullptr);fxOnControls.fill(nullptr);filterQ.fill(nullptr);switches.clear();combos.clear();controls.clear();rows.fill(nullptr);stars.fill(nullptr);rowIds.fill(-1);active=nullptr;search=nullptr;}
  void rebuild(){
   proc.engine->monitorHybrid.store(page==2,std::memory_order_relaxed);clearPage();const char* f[]={"MOTEUR GRANULAIRE","SAMPLE LAB","SYNTHÈSE","MODULATION","FILTRES & EFFETS","MOUVEMENT & SÉQUENCEUR","PERFORMANCE","PRESETS"};const char* e[]={"GRANULAR ENGINE","SAMPLE LAB","SYNTHESIS","MODULATION","FILTERS & EFFECTS","MOTION & SEQUENCER","PERFORMANCE","PRESET BROWSER"};
   sound.changeItemText(1,tr(fr,"Son personnalisé","Custom sound"));
@@ -518,7 +607,7 @@ private:
    active=button(tr(fr,"COUCHE ACTIVE","LAYER ACTIVE"),{1290,197,177,44},[this]{proc.set(lid(layer,"enabled"),proc.get(lid(layer,"enabled"))>.5f?0:1);updateActive();});updateActive();
    zoomButtons();const char* ids[]={"size","density","position","scatter","pitch","drift","spread","motion"};for(int i=0;i<8;++i)local(ids[i],67+i*176,671,124,111);
   }
-  if(page==1){zoomButtons();button(tr(fr,"IMPORTER","IMPORT"),{1060,198,170,41},[this]{chooseSample();});sampleToggle("sampleMode",tr(fr,"SAMPLE PERSONNEL","USER SAMPLE"),{1240,198,225,41});sourceCombo({48,656,415,33});sampleToggle("normalize",tr(fr,"NORMALISER","NORMALIZE"),{473,656,230,33});const char* ids[]={"start","end","fadeIn","fadeOut","root"};for(int i=0;i<5;++i)local(ids[i],49+i*131,695,124,98);local("scatter",768,642,152,145);local("drift",940,642,152,145);local("spread",1112,642,152,145);local("density",1284,642,152,145);}
+  if(page==1)buildLab();
   if(page==2)buildHybrid();
   if(page==3)buildMod();
   if(page==4){
@@ -542,8 +631,10 @@ private:
   if(page==5)buildMotion();
   if(page==6)buildPerformance();
   if(page==7){
+   auto* factoryTab=button(tr(fr,"USINE","FACTORY"),{342,198,155,42},[this]{userBrowser=false;rebuild();});factoryTab->setToggleState(!userBrowser,dontSendNotification);auto* userTab=button(tr(fr,"UTILISATEUR","USER"),{506,198,158,42},[this]{userBrowser=true;rebuild();});userTab->setToggleState(userBrowser,dontSendNotification);
+   if(userBrowser){buildUserBrowser();resized();repaint();return;}
    for(int i=0;i<13;++i){String name=i==0?tr(fr,"Tous les sons","All sounds"):i==1?tr(fr,"Favoris","Favorites"):catName(i-2);if(i>=2){int count=0;for(int j=0;j<eg::factoryCount;++j)if(presetCategory(j)==i-2)++count;name+="  "+String(count);}auto* b=button(name,{47,266+i*37,253,33},[this,i]{category=i;browserPage=0;refreshRows();});b->getProperties().set("left",true);categoryButtons[i]=b;}
-   auto e=std::make_unique<TextEditor>();e->setTextToShowWhenEmpty(tr(fr,"Rechercher un nom, une catégorie ou un tag...","Search name, category or tag..."),muted);e->onTextChange=[this]{browserPage=0;refreshRows();};search=addControl(std::move(e),{342,198,980,42});
+   auto e=std::make_unique<TextEditor>();e->setTextToShowWhenEmpty(tr(fr,"Rechercher un nom, une catégorie ou un tag...","Search name, category or tag..."),muted);e->onTextChange=[this]{browserPage=0;refreshRows();};search=addControl(std::move(e),{674,198,648,42});
    button(tr(fr,"SON ALÉATOIRE","RANDOM SOUND"),{1334,198,133,42},[this]{loadPreset(1+Random::getSystemRandom().nextInt(100));});
    for(int i=0;i<8;++i){rows[i]=button("",{350,290+i*56,620,52},[this,i]{if(rowIds[i]>=0)loadPreset(rowIds[i]);});rows[i]->getProperties().set("left",true);stars[i]=button("",{1384,298+i*56,64,36},[this,i]{int n=rowIds[i];if(n<0)return;favorites[n]=!favorites[n];proc.state.state.setProperty("factoryFav_"+String(n),favorites[n],nullptr);refreshRows();});}
    button("<",{1080,748,80,37},[this]{browserPage=jmax(0,browserPage-1);refreshRows();});pageLabel=button("",{1170,748,180,37},[]{});pageLabel->setInterceptsMouseClicks(false,false);button(">",{1360,748,95,37},[this]{browserPage=jmin(jmax(0,(matchCount-1)/8),browserPage+1);refreshRows();});
@@ -551,13 +642,13 @@ private:
   }
   resized();repaint();
  }
- void refreshRows(){if(page!=7||!search)return;auto q=search->getText().trim();std::array<int,eg::factoryCount> matches{};matchCount=0;
+ void refreshRows(){if(page!=7||userBrowser||!search)return;auto q=search->getText().trim();std::array<int,eg::factoryCount> matches{};matchCount=0;
   for(int n=0;n<eg::factoryCount;++n){bool keep=category==0||(category==1&&favorites[n])||(category>=2&&presetCategory(n)==category-2);if(!keep||(!q.isEmpty()&&!String(eg::factory[n].name).containsIgnoreCase(q)&&!catName(presetCategory(n)).containsIgnoreCase(q)&&!String(eg::factory[n].tag).containsIgnoreCase(q)))continue;matches[matchCount++]=n;}
   browserPage=jlimit(0,jmax(0,(matchCount-1)/8),browserPage);rowIds.fill(-1);
   for(int i=0;i<8;++i){int idx=browserPage*8+i;int n=idx<matchCount?matches[idx]:-1;rowIds[i]=n;rows[i]->setVisible(n>=0);stars[i]->setVisible(n>=0);if(n>=0){rows[i]->setButtonText(eg::factory[n].name);rows[i]->setToggleState(n==current,dontSendNotification);stars[i]->setButtonText(favorites[n]?String::fromUTF8("★"):String::fromUTF8("☆"));stars[i]->setToggleState(favorites[n],dontSendNotification);}}
   for(int i=0;i<13;++i)if(categoryButtons[i])categoryButtons[i]->setToggleState(i==category,dontSendNotification);if(pageLabel)pageLabel->setButtonText(String(browserPage+1)+" / "+String(jmax(1,(matchCount+7)/8))+"  ("+String(matchCount)+")");repaint();
  }
- void loadPreset(int i){if(i<0||i>=eg::factoryCount)return;current=i;proc.spectral.request(eg::SpectralEngine::Clear);auto p=eg::factorySettings(i);for(auto* param:proc.getParameters())param->setValueNotifyingHost(param->getDefaultValue());for(int j=0;j<4;++j){const auto& l=p.layers[j];auto set=[&](const char* id,float v){proc.set(lid(j,id),v);};
+ void loadPreset(int i){if(i<0||i>=eg::factoryCount)return;current=i;proc.randomUndo.clear();proc.spectral.request(eg::SpectralEngine::Clear);auto p=eg::factorySettings(i);for(auto* param:proc.getParameters())param->setValueNotifyingHost(param->getDefaultValue());for(int j=0;j<4;++j){const auto& l=p.layers[j];auto set=[&](const char* id,float v){proc.set(lid(j,id),v);};
  #define LP(k) set(#k,float(l.k))
  LP(level);LP(pan);LP(size);LP(density);LP(position);LP(scatter);LP(pitch);LP(drift);LP(spread);LP(motion);LP(cutoff);LP(cutoff2);LP(resonance);LP(resonance2);LP(filterMode);LP(filterMode2);LP(filterRouting);LP(source);LP(direction);LP(shape);LP(enabled);LP(sampleMode);
  #undef LP

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include "UserWavetable.h"
 namespace eg {
 constexpr float hyPi=3.14159265358979323846f;
 inline float hyWrap(float p){return p-std::floor(p);}
@@ -46,7 +47,7 @@ public:
  }
 };
 struct HybridConfig {
- HybridParams p{};std::array<float,16> ratio{},left{},right{};int count=1;
+ HybridParams p{};const UserWavetable* user=nullptr;std::array<float,16> ratio{},left{},right{};int count=1;
  void set(const HybridParams& x){
   p=x;count=std::clamp(p.unison,1,16);
   for(int i=0;i<count;++i){float pos=count==1?0.f:2.f*i/(count-1)-1.f;ratio[i]=std::exp2((p.fine+pos*p.detune)/1200.f);float pan=pos*std::clamp(p.width,0.f,1.f);left[i]=std::sqrt(1-pan)/count;right[i]=std::sqrt(1+pan)/count;}
@@ -71,7 +72,7 @@ public:
    if(p.mode==6){mods[i]=hyWrap(mods[i]+std::min(dt*ratio,.45f));float index=std::min(p.index,std::max(0.f,(.43f/std::max(dt,1e-7f)-1.f)/ratio-2.f));m=index*std::sin(2*hyPi*mods[i]);}
    float phaseOffset=(m+pm)/(2*hyPi);
    int band=HybridTables::band(dt*(1+std::min(8.f,std::abs(pm))));
-   auto read=[&](float at){return table.wave(p.mode,band,at+phaseOffset,p.shape);};
+   auto read=[&](float at){return p.mode==10?(c.user?c.user->read(band,at+phaseOffset,p.shape):0.f):table.wave(p.mode,band,at+phaseOffset,p.shape);};
    float out=carry[i];carry[i]=0;
    if(p.mode==7)out=noise();
    else if(p.mode==8){subPhases[i]=hyWrap(subPhases[i]+dt*.5f);out=table.lookup(0,0,subPhases[i]+phaseOffset);}
