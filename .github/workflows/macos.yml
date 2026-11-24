@@ -7,9 +7,12 @@ on:
       - 'CMakeLists.txt'
       - '.github/workflows/macos.yml'
   workflow_dispatch:
+concurrency:
+  group: equilibrium-grain-macos-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
